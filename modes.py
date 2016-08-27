@@ -68,8 +68,57 @@ class Titles(Mode):
         return TitleStages.STARTED
 
 class GameMode(Mode):
+    blurb = "Full Steam"
+    speed = 12
+    direction_amounts = {pygame.K_UP  :  0.01*speed,
+                         pygame.K_DOWN : -0.01*speed}
+    class KeyFlags:
+        LEFT  = 1
+        RIGHT = 2
+        UP    = 4
+        DOWN  = 8
+    keyflags = {pygame.K_a  : KeyFlags.LEFT,
+                pygame.K_d : KeyFlags.RIGHT,
+                pygame.K_UP    : KeyFlags.UP,
+                pygame.K_DOWN  : KeyFlags.DOWN}
+
+    inv_keys = [pygame.K_1,pygame.K_2,pygame.K_3]
+
     def __init__(self,parent):
         self.parent = parent
+        #bl = self.parent.GetRelative(self.parent.viewpos.pos)
+        #self.parent.viewpos.Follow(globals.time,self.parent.map.player)
+
+        # tr = bl + self.parent.GetRelative(globals.screen)
+        # self.blurb_text = ui.TextBox(parent = self.parent,
+        #                              bl     = bl         ,
+        #                              tr     = tr         ,
+        #                              text   = self.blurb ,
+        #                              textType = drawing.texture.TextTypes.GRID_RELATIVE,
+        #                              colour = (1,1,1,1),
+        #                              scale  = 4)
+        self.keydownmap = 0
+
+    def KeyDown(self,key):
+        if key in self.direction_amounts:
+            self.keydownmap |= self.keyflags[key]
+            self.parent.move_direction += self.direction_amounts[key]
+
+
+    def KeyUp(self,key):
+        if key in self.direction_amounts and (self.keydownmap & self.keyflags[key]):
+            self.keydownmap &= (~self.keyflags[key])
+            self.parent.move_direction -= self.direction_amounts[key]
+
+    def MouseButtonDown(self,pos,button):
+        return False,False
+
+    def MouseButtonUp(self,pos,button):
+        return False,False
+
+    def MouseMotion(self,pos,rel):
+        pass
+
 
 
 class GameOver(Mode):

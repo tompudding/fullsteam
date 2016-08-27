@@ -157,6 +157,67 @@ class Regulator(object):
             a = self.start_angle
         self.Update(a)
 
+class Brake(object):
+    name = 'brake_text.png'
+    knob_name = 'brake_handle.png'
+    start_pos = Point(0.5,0.72)
+    start_angle = 0.6
+    end_angle   = -0.27
+    def __init__(self, train):
+        self.train = train
+        self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
+        self.size = globals.atlas.SubimageSprite(self.name).size
+        self.knob_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.knob_name))
+        self.knob_coords = ((-30,-29),(-30,19),(34,19),(34,-29))
+        self.knob_settings = (0.45,0.13,-0.25)
+        bl = self.start_pos*globals.screen
+        tr = bl + self.size
+        self.knob_pos = bl + Point(30,29)
+        self.pos = bl
+        self.quad.SetVertices(bl,tr,0.6)
+        self.level = 0
+        self.Update(self.start_angle)
+
+    def snap(self):
+        #choose the nearest setting and switch to it
+        self.Update(self.start_angle)
+        #possibly play sound here
+
+
+    def Update(self, angle):
+        new_angle = angle - 0.20
+        self.current_angle = angle
+        print new_angle
+        vertices = [0,0,0,0]
+        for i,coord in enumerate(self.knob_coords):
+            p = coord[0] + coord[1]*1j
+            distance,old_angle = cmath.polar(p)
+            c = cmath.rect(distance,old_angle + new_angle)
+            vertices[i] = self.knob_pos + Point(c.real, c.imag)
+
+        self.knob_quad.SetAllVertices(vertices, 0.5)
+
+    def __contains__(self, item):
+        return (item.x >= self.pos.x) and (item.x < self.pos.x + self.size.x) and (item.y >= self.pos.y) and (item.y < self.pos.y + self.size.y)
+
+    def click(self, pos):
+        diff = pos - (self.knob_pos)
+        p = diff.x + diff.y*1j
+        r,a = cmath.polar(p)
+        if r > 18 and r < 29 and a > -0.45 and a < 0.6:
+            return True, self
+        return False, False
+
+    def motion(self, pos):
+        diff = pos - (self.knob_pos - Point(0,4))
+        p = diff.x + diff.y*1j
+        r,a = cmath.polar(p)
+        if a < self.end_angle:
+            a = self.end_angle
+        if a > self.start_angle:
+            a = self.start_angle
+        self.Update(a)
+
 class Train(object):
     max_speed = 20
     safe_speed = 13
@@ -173,6 +234,7 @@ class Train(object):
         self.pressure_gauge = PressureGauge(self)
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
+        self.brake = Brake(self)
         self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.move_direction = 0
         #self.wheel = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('wheel.png')))
@@ -187,7 +249,7 @@ class Train(object):
         #if self.move_direction:
         #    self.speed += self.move_direction*elapsed*10
         #Burn fuel in the engine
-        print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f' % (self.coal, self.pressure, self.speed)
+        #print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f' % (self.coal, self.pressure, self.speed)
         self.burn(elapsed)
 
         if self.steam_flow > 0:
@@ -243,13 +305,15 @@ class Train(object):
             return False, False
         if pos in self.regulator:
             return self.regulator.click(pos)
+        elif pos in self.brake:
+                return self.brake.click(pos)
         return False, False
 
     def mouse_button_up(self, pos, button):
         if button != 1:
             return False, False
-        if globals.dragging is self.regulator:
-            self.regulator.snap()
+        if globals.dragging:
+            globals.dragging.snap()
             return True,False
         return False,False
 

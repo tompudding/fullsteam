@@ -53,7 +53,6 @@ class Train(object):
             self.speed += self.move_direction*elapsed*0.001
         self.moved += self.speed
 
-        print 'm',self.moved
         for wheel in self.wheels:
             wheel.Update(self.moved)
 
@@ -76,13 +75,11 @@ class LoopingQuad(object):
         coords = [[moved_partial,0],[moved_partial,1],[1,1],[1,0]]
         globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
         self.quads[0].SetTextureCoordinates(coords)
-        #print coords
         #The second goes from moved to the end
         self.quads[1].SetVertices(self.pos + Point(self.moved,0), Point(self.pos.x + self.size.x,self.pos.y + self.size.y), self.z)
         coords = [[0,0],[0,1],[moved_partial,1],[moved_partial,0]]
         tc = globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
         self.quads[1].SetTextureCoordinates(coords)
-        print coords
 
     def Update(self, moved):
         self.moved = moved % self.size.x

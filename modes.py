@@ -103,6 +103,8 @@ class GameMode(Mode):
         if key in self.direction_amounts:
             self.keydownmap |= self.keyflags[key]
             self.parent.train.move_direction += self.direction_amounts[key]
+        if key == pygame.K_SPACE:
+            self.parent.train.add_coal(1)
 
 
     def KeyUp(self,key):

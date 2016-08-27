@@ -160,6 +160,12 @@ class Regulator(object):
 class Train(object):
     max_speed = 20
     safe_speed = 13
+    max_coal = 10
+    burn_rate = 0.03
+    max_pressure = 10
+    coal_to_pressure = 0.5
+    pressure_usage = 0.02
+    pressure_to_speed = 8
     def __init__(self,parent):
         self.parent = parent
         self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords('train.png'))
@@ -173,11 +179,23 @@ class Train(object):
         #self.wheel.SetVertices(Point(20+99,43),Point(20+99+28,43+28),0.3)
         self.speed = 0
         self.moved = 0
-        self.steam = 0
+        self.coal = 0
+        self.pressure = 0
+        self.steam_flow = 0
 
     def Update(self, elapsed):
-        if self.move_direction:
-            self.speed += self.move_direction*elapsed*10
+        #if self.move_direction:
+        #    self.speed += self.move_direction*elapsed*10
+        #Burn fuel in the engine
+        print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f' % (self.coal, self.pressure, self.speed)
+        self.burn(elapsed)
+
+        if self.steam_flow > 0:
+            #We can drive the engine!
+            rate = self.steam_flow * self.pressure_usage * elapsed
+            rate = min(rate, self.pressure)
+            self.speed += rate * self.pressure_to_speed
+            self.adjust_pressure(-rate)
 
         if self.speed > self.max_speed:
             self.speed = self.max_speed
@@ -190,13 +208,35 @@ class Train(object):
         for wheel in self.wheels:
             wheel.Update(self.moved)
 
-        self.pressure_gauge.Update(0, elapsed)
+        self.pressure_gauge.Update(self.pressure, elapsed)
         self.speedo.Update(self.speed/self.max_speed, elapsed)
         #self.regulator.Update(0)
 
+    def burn(self, elapsed):
+        scale_factor = [0.5,1,2,3,4,3,1,0.5,0.25,0.1][int(self.coal)]
+        if self.coal == 0:
+            return
+
+        amount = elapsed * self.burn_rate * scale_factor
+
+        if amount > self.coal:
+            amount = self.coal
+
+        self.coal -= amount
+        self.adjust_pressure(amount*self.coal_to_pressure*scale_factor)
+
+    def adjust_pressure(self, amount):
+        self.pressure += amount
+        if self.pressure > self.max_pressure:
+            self.pressure = self.max_pressure
+            self.damage(1)
+            #maybe show venting steam here
+        if self.pressure < 0:
+            self.pressure = 0
+
     def set_steam(self, value):
-        self.steam = value
-        print 'steam now',value
+        self.steam_flow = value
+        print 'steam flow now',self.steam_flow
 
     def mouse_button_down(self, pos, button):
         if button != 1:
@@ -212,6 +252,11 @@ class Train(object):
             self.regulator.snap()
             return True,False
         return False,False
+
+    def add_coal(self, amount):
+        self.coal += amount
+        if self.coal > self.max_coal:
+            self.coal = self.max_coal
 
 class LoopingQuad(object):
     def __init__(self, pos, z, name, sf):

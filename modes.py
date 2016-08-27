@@ -111,10 +111,10 @@ class GameMode(Mode):
             self.parent.train.move_direction -= self.direction_amounts[key]
 
     def MouseButtonDown(self,pos,button):
-        return False,False
+        return self.parent.train.mouse_button_down(pos,button)
 
     def MouseButtonUp(self,pos,button):
-        return False,False
+        return self.parent.train.mouse_button_up(pos,button)
 
     def MouseMotion(self,pos,rel):
         pass

@@ -4,6 +4,7 @@ import ui,globals
 import drawing
 import game_view
 import sounds
+import Tkinter
 from globals.types import Point
 
 def Init():
@@ -42,6 +43,8 @@ def main():
     last = 0
     clock = pygame.time.Clock()
 
+
+
     while not done:
         drawing.NewFrame()
         clock.tick(60)
@@ -53,8 +56,8 @@ def main():
         #globals.current_time = t
 
         globals.current_view.Update(t)
-        globals.current_view.Draw()
-        globals.screen_root.Draw()
+        adjust = globals.current_view.Draw()
+        globals.screen_root.Draw(adjust)
         globals.text_manager.Draw()
         pygame.display.flip()
 
@@ -76,7 +79,7 @@ def main():
                 globals.current_view.KeyUp(event.key)
             else:
                 try:
-                    pos = Point(event.pos[0],globals.screen[1]-event.pos[1])
+                    pos = Point(float(event.pos[0])/globals.scale[0],globals.screen[1]-(float(event.pos[1])/globals.scale[1]))
                 except AttributeError:
                     continue
                 if event.type == pygame.MOUSEMOTION:

@@ -86,7 +86,7 @@ class Train(object):
 
     def Update(self, elapsed):
         if self.move_direction:
-            self.speed += self.move_direction*elapsed*0.001
+            self.speed += self.move_direction*elapsed
         self.moved += self.speed
 
         for wheel in self.wheels:

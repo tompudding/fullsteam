@@ -1,4 +1,7 @@
-resource/sprites/sky.png:tiles_atlas_0.png:0:332.0:320:180
-resource/sprites/train.png:tiles_atlas_0.png:0:252.0:280:80
-resource/sprites/tracks.png:tiles_atlas_0.png:0:207.0:320:45
-resource/sprites/wheel.png:tiles_atlas_0.png:320:224.0:28:28
+resource/sprites/hills.png:tiles_atlas_0.png:0:332.0:320:180
+resource/sprites/sky.png:tiles_atlas_0.png:0:152.0:320:180
+resource/sprites/train.png:tiles_atlas_0.png:0:72.0:280:80
+resource/sprites/tracks.png:tiles_atlas_0.png:0:27.0:320:45
+resource/sprites/pressure.png:tiles_atlas_0.png:280:104.0:48:48
+resource/sprites/wheel.png:tiles_atlas_0.png:280:76.0:28:28
+resource/sprites/arrow.png:tiles_atlas_0.png:308:97.0:21:7

@@ -36,11 +36,47 @@ class Wheel(object):
         self.angle = self.initial_angle + (moved/self.radius)
         self.set_vertices()
 
+class PressureGauge(object):
+    range = math.pi*2*0.77
+    start = math.pi/4
+    def __init__(self, train):
+        self.train = train
+        self.name = 'pressure.png'
+        self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
+        self.size = globals.atlas.SubimageSprite(self.name).size
+        self.arrow_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords('arrow.png'))
+        self.arrow_size = globals.atlas.SubimageSprite('arrow.png').size
+        self.arrow_coords = ((-11,-3),(-11,3),(9,3),(9,-3))
+        bl = Point(0.6,0.72)*globals.screen
+        tr = bl + self.size
+        self.pos = bl
+        self.arrow_pos = bl + Point(24,32)
+        self.quad.SetVertices(bl,tr,0.4)
+        self.level = 0
+        self.set_dial()
+
+    def set_dial(self):
+        new_angle = -self.level*self.range + self.start
+        vertices = [0,0,0,0]
+        for i,coord in enumerate(self.arrow_coords):
+            p = coord[0] + coord[1]*1j
+            distance,old_angle = cmath.polar(p)
+            c = cmath.rect(distance,old_angle + new_angle)
+            vertices[i] = self.arrow_pos + Point(c.real, c.imag)
+        self.arrow_quad.SetAllVertices(vertices, 0.5)
+
+    def Update(self, elapsed):
+        self.level += elapsed/5
+        if self.level > 1:
+            self.level = 0
+        self.set_dial()
+
 
 class Train(object):
     def __init__(self):
         self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords('train.png'))
         self.quad.SetVertices(Point(20,43),Point(300,43+80),0.2)
+        self.pressure_gauge = PressureGauge(self)
         self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.move_direction = 0
         #self.wheel = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('wheel.png')))
@@ -56,11 +92,14 @@ class Train(object):
         for wheel in self.wheels:
             wheel.Update(self.moved)
 
+        self.pressure_gauge.Update(elapsed)
+
 class LoopingQuad(object):
-    def __init__(self, pos, z, name):
+    def __init__(self, pos, z, name, sf):
         self.pos = pos
         self.name = name
         self.z = z
+        self.sf = sf
         self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(2)]
         self.size = globals.atlas.SubimageSprite(self.name).size
         self.tc = globals.atlas.TextureSpriteCoords(self.name)
@@ -82,7 +121,7 @@ class LoopingQuad(object):
         self.quads[1].SetTextureCoordinates(coords)
 
     def Update(self, moved):
-        self.moved = moved % self.size.x
+        self.moved = (moved*self.sf) % self.size.x
         self.set_coords()
 
 
@@ -90,8 +129,9 @@ class GameView(ui.RootElement):
     def __init__(self):
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
-        self.sky = LoopingQuad(Point(0,0), 0, 'sky.png')
-        self.tracks = LoopingQuad(Point(0,0), 0.1, 'tracks.png')
+        self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
+        self.hills = LoopingQuad(Point(0,0), 0.05, 'hills.png', 0.6)
+        self.tracks = LoopingQuad(Point(0,0), 0.1, 'tracks.png', 1.0)
         self.train = Train()
         self.last = None
         self.move_direction = 0
@@ -120,10 +160,12 @@ class GameView(ui.RootElement):
             self.last = t
             return
         elapsed = float(t - self.last)/1000
+        self.last = t
 
         self.train.Update(elapsed)
-        self.sky.Update(self.train.moved)
-        self.tracks.Update(self.train.moved)
+        for backdrop in self.sky,self.tracks,self.hills:
+            backdrop.Update(self.train.moved)
+
         if self.mode:
             self.mode.Update(t)
 

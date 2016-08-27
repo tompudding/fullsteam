@@ -182,12 +182,15 @@ class Brake(object):
         #choose the nearest setting and switch to it
         self.Update(self.start_angle)
         #possibly play sound here
+        self.train.set_brake(0)
 
 
     def Update(self, angle):
         new_angle = angle - 0.20
         self.current_angle = angle
-        print new_angle
+        if new_angle < 0.3:
+            brake_amount = (0.3 - new_angle)/(0.50 - self.end_angle)
+            self.train.set_brake(brake_amount)
         vertices = [0,0,0,0]
         for i,coord in enumerate(self.knob_coords):
             p = coord[0] + coord[1]*1j
@@ -225,8 +228,11 @@ class Train(object):
     burn_rate = 0.03
     max_pressure = 10
     coal_to_pressure = 0.5
-    pressure_usage = 0.02
-    pressure_to_speed = 8
+    pressure_usage = 0.04
+    pressure_to_speed = 10
+    friction = 0.02
+    safe_pressure = 0.65
+    safe_braking = 1
     def __init__(self,parent):
         self.parent = parent
         self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords('train.png'))
@@ -244,12 +250,14 @@ class Train(object):
         self.coal = 0
         self.pressure = 0
         self.steam_flow = 0
+        self.braking = 0
+        self.health = 100
 
     def Update(self, elapsed):
         #if self.move_direction:
         #    self.speed += self.move_direction*elapsed*10
         #Burn fuel in the engine
-        #print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f' % (self.coal, self.pressure, self.speed)
+        print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f, brake : %4.2f, health : %6.2f' % (self.coal, self.pressure, self.speed, self.braking, self.health)
         self.burn(elapsed)
 
         if self.steam_flow > 0:
@@ -259,12 +267,18 @@ class Train(object):
             self.speed += rate * self.pressure_to_speed
             self.adjust_pressure(-rate)
 
+        if self.braking:
+            friction = self.friction + (self.braking**2)*2
+        else:
+            friction = self.friction
+
+        self.speed -= friction*elapsed*self.speed
+
         if self.speed > self.max_speed:
             self.speed = self.max_speed
-        if self.speed >= self.safe_speed:
-            self.parent.shake = (self.speed - self.safe_speed)
-        else:
-            self.parent.shake = 0
+        if self.speed < 0.03 and self.braking:
+            self.speed = 0
+
         self.moved += self.speed
 
         for wheel in self.wheels:
@@ -272,14 +286,36 @@ class Train(object):
 
         self.pressure_gauge.Update(self.pressure, elapsed)
         self.speedo.Update(self.speed/self.max_speed, elapsed)
+        self.damage(elapsed)
         #self.regulator.Update(0)
+
+    def damage(self, elapsed):
+        over_speed = self.speed - self.safe_speed
+        if over_speed < 0:
+            over_speed = 0
+
+        over_pressure = (self.pressure - self.safe_pressure)*10
+        if over_pressure < 0:
+            over_pressure = 0
+
+        braking = ((self.braking * self.speed) - self.safe_braking)*30
+        if braking < 0:
+            braking = 0
+
+
+        total = over_speed + over_pressure + braking
+        self.parent.shake = min(total, 10)
+        self.health -= total*elapsed
+
+    def set_brake(self, amount):
+        self.braking = amount
 
     def burn(self, elapsed):
         scale_factor = [0.5,1,2,3,4,3,1,0.5,0.25,0.1][int(self.coal)]
         if self.coal == 0:
             return
 
-        amount = elapsed * self.burn_rate * scale_factor
+        amount = elapsed * self.burn_rate
 
         if amount > self.coal:
             amount = self.coal

@@ -226,7 +226,7 @@ class Train(object):
     safe_speed = 13
     max_coal = 10
     burn_rate = 0.03
-    max_pressure = 10
+    max_pressure = 1
     coal_to_pressure = 0.5
     pressure_usage = 0.04
     pressure_to_speed = 10
@@ -298,7 +298,13 @@ class Train(object):
         if over_pressure < 0:
             over_pressure = 0
 
-        braking = ((self.braking * self.speed) - self.safe_braking)*30
+        if self.steam_flow < 0.1:
+            brake_sf = 2
+        elif self.steam_flow < 0.8:
+            brake_sf = 20
+        else:
+            brake_sf = 30
+        braking = ((self.braking * self.speed) - self.safe_braking)*brake_sf
         if braking < 0:
             braking = 0
 

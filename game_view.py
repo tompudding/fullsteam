@@ -11,6 +11,7 @@ class Wheel(object):
         self.x = x
         self.y = y
         self.angle = angle
+        self.initial_angle = angle
         self.height = 28
         self.radius = self.height/2
         self.pos = Point(x+self.radius,y+self.radius)
@@ -20,6 +21,7 @@ class Wheel(object):
                        (self.radius, self.radius),
                        (self.radius, -self.radius))
         self.set_vertices()
+        self.circumference = math.pi*2*self.radius
 
     def set_vertices(self):
         vertices = [0,0,0,0]
@@ -30,32 +32,71 @@ class Wheel(object):
             vertices[i] = self.pos + Point(c.real, c.imag)
         self.quad.SetAllVertices(vertices, 0.3)
 
-    def Update(self, t):
-        self.angle = math.pi*(float(t)/1000)
+    def Update(self, moved):
+        self.angle = self.initial_angle + (moved/self.radius)
         self.set_vertices()
 
 
 class Train(object):
     def __init__(self):
-        self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('train.png')))
+        self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords('train.png'))
         self.quad.SetVertices(Point(20,43),Point(300,43+80),0.2)
         self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
+        self.move_direction = 0
         #self.wheel = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('wheel.png')))
         #self.wheel.SetVertices(Point(20+99,43),Point(20+99+28,43+28),0.3)
+        self.speed = 0
+        self.moved = 0
 
-    def Update(self, t):
+    def Update(self, elapsed):
+        if self.move_direction:
+            self.speed += self.move_direction*elapsed*0.001
+        self.moved += self.speed
+
+        print 'm',self.moved
         for wheel in self.wheels:
-            wheel.Update(t)
+            wheel.Update(self.moved)
+
+class LoopingQuad(object):
+    def __init__(self, pos, z, name):
+        self.pos = pos
+        self.name = name
+        self.z = z
+        self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(2)]
+        self.size = globals.atlas.SubimageSprite(self.name).size
+        self.tc = globals.atlas.TextureSpriteCoords(self.name)
+        self.moved = 10
+        self.set_coords()
+
+    def set_coords(self):
+        #The first quad is the amount moved
+        self.quads[0].SetVertices(self.pos, Point(self.pos.x + self.moved, self.pos.y + self.size.y), self.z)
+        # #The texture coordinate is
+        moved_partial = 1-float(self.moved)/self.size.x
+        coords = [[moved_partial,0],[moved_partial,1],[1,1],[1,0]]
+        globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
+        self.quads[0].SetTextureCoordinates(coords)
+        #print coords
+        #The second goes from moved to the end
+        self.quads[1].SetVertices(self.pos + Point(self.moved,0), Point(self.pos.x + self.size.x,self.pos.y + self.size.y), self.z)
+        coords = [[0,0],[0,1],[moved_partial,1],[moved_partial,0]]
+        tc = globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
+        self.quads[1].SetTextureCoordinates(coords)
+        print coords
+
+    def Update(self, moved):
+        self.moved = moved % self.size.x
+        self.set_coords()
+
 
 class GameView(ui.RootElement):
     def __init__(self):
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
-        self.sky_quad  = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('sky.png')))
-        self.sky_quad.SetVertices(Point(0,0),globals.screen,0)
-        self.tracks_quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('tracks.png')))
-        self.tracks_quad.SetVertices(Point(0,0),Point(globals.screen.x,globals.screen.y/4),0.1)
+        self.sky = LoopingQuad(Point(0,0), 0, 'sky.png')
+        self.tracks = LoopingQuad(Point(0,0), 0.1, 'tracks.png')
         self.train = Train()
+        self.last = None
         self.move_direction = 0
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
@@ -78,7 +119,14 @@ class GameView(ui.RootElement):
         drawing.DrawAll(globals.nonstatic_text_buffer,globals.text_manager.atlas.texture.texture)
 
     def Update(self,t):
-        self.train.Update(t)
+        if self.last is None:
+            self.last = t
+            return
+        elapsed = float(t - self.last)/1000
+
+        self.train.Update(elapsed)
+        self.sky.Update(self.train.moved)
+        self.tracks.Update(self.train.moved)
         if self.mode:
             self.mode.Update(t)
 

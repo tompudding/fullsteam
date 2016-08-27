@@ -10,6 +10,8 @@ class GameView(ui.RootElement):
     def __init__(self):
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
+        self.sky_quad  = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureCoords(os.path.join(globals.dirs.sprites,'sky.png')))
+        self.sky_quad.SetVertices(Point(0,0),globals.screen,0)
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
         super(GameView,self).__init__(Point(0,0),globals.screen)
@@ -27,21 +29,22 @@ class GameView(ui.RootElement):
         drawing.ResetState()
         drawing.DrawNoTexture(globals.line_buffer)
         drawing.DrawNoTexture(globals.colour_tiles)
+        drawing.DrawAll(globals.quad_buffer,self.atlas.texture.texture)
         drawing.DrawAll(globals.nonstatic_text_buffer,globals.text_manager.atlas.texture.texture)
-        
+
     def Update(self,t):
         if self.mode:
             self.mode.Update(t)
 
         if self.game_over:
             return
-            
+
         self.t = t
 
     def GameOver(self):
         self.game_over = True
         self.mode = modes.GameOver(self)
-        
+
     def KeyDown(self,key):
         self.mode.KeyDown(key)
 

@@ -40,22 +40,23 @@ class PressureGauge(object):
     range = math.pi*2*0.77
     start = math.pi/4
     name = 'pressure.png'
+    arrow_name = 'arrow.png'
     start_pos = Point(0.02,0.72)
     wobble = 0.2
-    def __init__(self, train):
+    centre = Point(24,32)
+    arrow_coords = ((-11,-3),(-11,3),(9,3),(9,-3))
+    def __init__(self, train, initial_level=0.0):
         self.train = train
         self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
         self.size = globals.atlas.SubimageSprite(self.name).size
-        self.arrow_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords('arrow.png'))
-        self.arrow_size = globals.atlas.SubimageSprite('arrow.png').size
-        self.arrow_coords = ((-11,-3),(-11,3),(9,3),(9,-3))
+        self.arrow_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.arrow_name))
+        self.arrow_size = globals.atlas.SubimageSprite(self.arrow_name).size
         bl = self.start_pos*globals.screen
         tr = bl + self.size
         self.pos = bl
-        self.arrow_pos = bl + Point(24,32)
+        self.arrow_pos = bl + self.centre
         self.quad.SetVertices(bl,tr,5.4)
-        self.level = 0
-        self.set_dial()
+        self.Update(initial_level,0)
 
     def set_dial(self):
         new_angle = -self.level*self.range + self.start
@@ -87,6 +88,28 @@ class Speedo(PressureGauge):
     name = 'speed.png'
     start_pos = Point(0.13,0.72)
     wobble = 0.2
+
+#The position should be an argument, it's crazy to make classes just for a different position
+#oh well, ludum rush
+
+class CoalDial(PressureGauge):
+    start_pos = Point(0.51,0.85)
+    name = 'dial.png'
+    arrow_name = 'needle.png'
+    wobble = 0.2
+    start = 0
+    centre = Point(16,4)
+    range = math.pi
+    max_level = 4
+    arrow_coords = ((-11,-2),(-11,2),(0,3),(0,-3))
+
+    def Update(self, level, elapsed):
+        level = float(level)/self.max_level
+        super(CoalDial,self).Update(level, elapsed)
+
+class HealthDial(CoalDial):
+    max_level = 100
+    start_pos = CoalDial.start_pos + Point(0.11,0)
 
 class Regulator(object):
     name = 'regulator.png'
@@ -259,7 +282,7 @@ class Cloud(object):
 class Train(object):
     max_speed = 20
     safe_speed = 13
-    max_coal = 10
+    max_coal = 4
     burn_rate = 0.03
     max_pressure = 1
     coal_to_pressure = 0.5
@@ -268,7 +291,9 @@ class Train(object):
     friction = 0.02
     safe_pressure = 0.65
     safe_braking = 1
+    min_pressure = 0.05
     max_clouds = 300
+    pressure_loss = 0.005
     name = 'train.png'
     def __init__(self,parent):
         self.parent = parent
@@ -280,6 +305,9 @@ class Train(object):
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
         self.brake = Brake(self)
+        self.coal_dial   = CoalDial(self)
+        self.health = 100
+        self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
@@ -291,7 +319,7 @@ class Train(object):
         self.pressure = 0
         self.steam_flow = 0
         self.braking = 0
-        self.health = 100
+
 
     def Update(self, elapsed):
         #if self.move_direction:
@@ -304,9 +332,10 @@ class Train(object):
             #We can drive the engine!
             rate = self.steam_flow * self.pressure_usage * elapsed
             rate = min(rate, self.pressure)
-            if rate > 0:
+            if rate > 0 and self.pressure > self.min_pressure:
                 self.adjust_pressure(-rate)
-            self.speed += rate * self.pressure_to_speed
+                self.speed += rate * self.pressure_to_speed
+        self.adjust_pressure(-self.pressure_loss*elapsed, loss=True)
 
 
         if self.braking:
@@ -329,6 +358,8 @@ class Train(object):
         self.pressure_gauge.Update(self.pressure, elapsed)
         self.speedo.Update(self.speed/self.max_speed, elapsed)
         self.damage(elapsed)
+        self.health_dial.Update(self.health, elapsed)
+        self.coal_dial.Update(self.coal, elapsed)
         self.clouds = [cloud for cloud in self.clouds if cloud.Update(self.moved, elapsed)]
         #self.regulator.Update(0)
 
@@ -405,8 +436,8 @@ class Train(object):
         n = numpy.random.poisson(num*10)
         return self.add_steam(n, steam=True, pos=self.vent_pos)
 
-    def adjust_pressure(self, amount):
-        if amount < 0:
+    def adjust_pressure(self, amount, loss=False):
+        if amount < 0 and not loss:
             self.add_steam(numpy.random.poisson(-amount*2000*self.steam_flow*math.sqrt(self.speed)))
             #print 'use steam %8.4f' % amount,p
 
@@ -507,7 +538,7 @@ class GameView(ui.RootElement):
         self.text = ui.TextBox(parent = globals.screen_root,
                                bl     = Point(0,0.68)         ,
                                tr     = Point(1,0.78)         ,
-                               text   = 'Pressure  Speed   Regulator  Brake' ,
+                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health' ,
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                colour = drawing.constants.colours.black,
                                scale  = 2)

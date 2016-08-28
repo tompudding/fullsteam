@@ -11,4 +11,6 @@ resource/sprites/regulator_knob.png:tiles_atlas_0.png:448:236.0:64:48
 resource/sprites/pressure.png:tiles_atlas_0.png:320:336.0:48:48
 resource/sprites/speed.png:tiles_atlas_0.png:368:336.0:48:48
 resource/sprites/wheel.png:tiles_atlas_0.png:448:388.0:28:28
-resource/sprites/arrow.png:tiles_atlas_0.png:476:409.0:21:7
+resource/sprites/dial.png:tiles_atlas_0.png:476:398.0:32:18
+resource/sprites/arrow.png:tiles_atlas_0.png:476:391.0:21:7
+resource/sprites/needle.png:tiles_atlas_0.png:497:393.0:11:5

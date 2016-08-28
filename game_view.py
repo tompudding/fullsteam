@@ -92,6 +92,54 @@ class Speedo(PressureGauge):
     start_pos = Point(0.085,0.72)
     wobble = 0.2
 
+class Clock(object):
+    range = math.pi*2*0.77
+    start = math.pi/4
+    name = 'clock.png'
+    hour_hand_name = 'hour_hand.png'
+    minute_hand_name = 'minute_hand.png'
+    start_pos = Point(0.8,0.81)
+    centre = Point(16,16)
+    hour_hand_coords = ((-1,-1),(-1,6),(1,6),(1,-1))
+    minute_hand_coords = ((-0.5,-1),(-0.5,13),(0.5,13),(0.5,-1))
+    seconds_to_hours = 0.01
+    def __init__(self, train, initial_level=0.0):
+        self.train = train
+        self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
+        self.size = globals.atlas.SubimageSprite(self.name).size
+        self.hour_hand_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.hour_hand_name))
+        self.hour_hand_size = globals.atlas.SubimageSprite(self.hour_hand_name).size
+        self.minute_hand_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.minute_hand_name))
+        self.minute_hand_size = globals.atlas.SubimageSprite(self.minute_hand_name).size
+        bl = self.start_pos*globals.screen
+        tr = bl + self.size
+        self.pos = bl
+        self.hour_hand_pos = bl + self.centre
+        self.minute_hand_pos = bl + self.centre
+        self.quad.SetVertices(bl,tr,5.4)
+        self.Update(0)
+
+    def set_dial(self, hour, minute):
+        hour_angle = -2*math.pi*float(hour)/12
+        minute_angle = -2*math.pi*float(minute)/60
+        for quad,coords,angle in ((self.hour_hand_quad, self.hour_hand_coords, hour_angle),
+                                  (self.minute_hand_quad, self.minute_hand_coords, minute_angle)):
+            vertices = [0,0,0,0]
+            for i,coord in enumerate(coords):
+                p = coord[0] + coord[1]*1j
+                distance,old_angle = cmath.polar(p)
+                c = cmath.rect(distance,old_angle + angle)
+                vertices[i] = self.pos + self.centre + Point(c.real, c.imag)
+            quad.SetAllVertices(vertices, 5.5+i+1)
+
+    def Update(self, elapsed):
+        time = self.train.parent.start_time_hours + self.seconds_to_hours * float(globals.time)/1000
+        minutes = (time % 1.0) * 60
+        hours = time % 12
+
+        self.set_dial(hours, minutes)
+
+
 #The position should be an argument, it's crazy to make classes just for a different position
 #oh well, ludum rush
 
@@ -363,6 +411,7 @@ class Train(object):
         self.reverser  = Reverser(self)
         self.brake = Brake(self)
         self.coal_dial   = CoalDial(self)
+        self.clock = Clock(self)
         self.health = 100
         self.direction = 1
         self.health_dial = HealthDial(self, self.health)
@@ -401,6 +450,7 @@ class Train(object):
         #    self.speed += self.move_direction*elapsed*10
         #Burn fuel in the engine
         #print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f, brake : %4.2f, health : %6.2f' % (self.coal, self.pressure, self.speed, self.braking, self.health)
+        self.clock.Update(elapsed)
         self.set_vertices()
         self.burn(elapsed)
 
@@ -612,6 +662,7 @@ def smoothstep(last,target,x):
 class GameView(ui.RootElement):
     chunk_width = 3000
     def __init__(self):
+        self.start_time_hours = 4
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
@@ -624,9 +675,9 @@ class GameView(ui.RootElement):
         self.shake = 0
         self.level_heights = [0,0,400,-600,0,0]
         self.text = ui.TextBox(parent = globals.screen_root,
-                               bl     = Point(-0.045,0.69)         ,
-                               tr     = Point(1,0.79)         ,
-                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health   Reverser' ,
+                               bl     = Point(-0.045,0.71)         ,
+                               tr     = Point(1,0.81)         ,
+                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health   Reverser  Time' ,
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                colour = drawing.constants.colours.black,
                                scale  = 2)

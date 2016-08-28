@@ -11,7 +11,10 @@ resource/sprites/regulator_knob.png:tiles_atlas_0.png:704:848.0:64:48
 resource/sprites/reverser.png:tiles_atlas_0.png:768:848.0:64:48
 resource/sprites/pressure.png:tiles_atlas_0.png:832:848.0:48:48
 resource/sprites/speed.png:tiles_atlas_0.png:880:848.0:48:48
-resource/sprites/wheel.png:tiles_atlas_0.png:960:900.0:28:28
-resource/sprites/dial.png:tiles_atlas_0.png:988:910.0:32:18
-resource/sprites/arrow.png:tiles_atlas_0.png:988:903.0:21:7
-resource/sprites/needle.png:tiles_atlas_0.png:1009:905.0:11:5
+resource/sprites/clock.png:tiles_atlas_0.png:960:896.0:32:32
+resource/sprites/wheel.png:tiles_atlas_0.png:992:900.0:28:28
+resource/sprites/dial.png:tiles_atlas_0.png:928:878.0:32:18
+resource/sprites/arrow.png:tiles_atlas_0.png:960:889.0:21:7
+resource/sprites/needle.png:tiles_atlas_0.png:981:891.0:11:5
+resource/sprites/hour_hand.png:tiles_atlas_0.png:1020:921.0:2:7
+resource/sprites/minute_hand.png:tiles_atlas_0.png:1020:907.0:1:14

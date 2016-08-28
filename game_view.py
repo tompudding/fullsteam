@@ -493,14 +493,15 @@ class LoopingQuad(object):
 
     def set_coords(self):
         #The first quad is the amount moved
-        bl = self.pos
-        tr = Point(self.pos.x + self.moved, self.pos.y + self.size.y)
+        offset = Point(self.size.x/2,0)
+        bl = self.pos - offset
+        tr = Point(self.pos.x + self.moved, self.pos.y + self.size.y) -offset
         vertices = [0,0,0,0]
         for (i,coord) in enumerate((Point(bl.x, bl.y),
                                     Point(bl.x, tr.y),
                                     Point(tr.x, tr.y),
                                     Point(tr.x, bl.y))):
-            vertices[i] = coord.Rotate(self.angle)
+            vertices[i] = offset + coord.Rotate(self.angle)
         self.quads[0].SetAllVertices(vertices,self.z)
         # #The texture coordinate is
         moved_partial = 1-float(self.moved)/self.size.x
@@ -508,13 +509,13 @@ class LoopingQuad(object):
         globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
         self.quads[0].SetTextureCoordinates(coords)
         #The second goes from moved to the end
-        bl = self.pos + Point(self.moved,0)
-        tr = Point(self.pos.x + self.size.x,self.pos.y + self.size.y)
+        bl = self.pos + Point(self.moved,0) - offset
+        tr = Point(self.pos.x + self.size.x,self.pos.y + self.size.y) -offset
         for (i,coord) in enumerate((Point(bl.x, bl.y),
                                     Point(bl.x, tr.y),
                                     Point(tr.x, tr.y),
                                     Point(tr.x, bl.y))):
-            vertices[i] = coord.Rotate(self.angle)
+            vertices[i] = offset + coord.Rotate(self.angle)
         #self.quads[1].SetVertices(self.pos + Point(self.moved,0), Point(self.pos.x + self.size.x,self.pos.y + self.size.y), self.z)
         self.quads[1].SetAllVertices(vertices,self.z)
         coords = [[0,0],[0,1],[moved_partial,1],[moved_partial,0]]
@@ -531,9 +532,10 @@ class GameView(ui.RootElement):
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
-        self.hills = LoopingQuad(Point(0,0), 0.05, 'hills.png', 0.6)
-        self.tracks = LoopingQuad(Point(0,0), 0.1, 'tracks.png', 1.0)
-        #self.hills.angle = -0.1
+        self.hills = LoopingQuad(Point(0,-50), 0.05, 'hills.png', 0.6)
+        self.tracks = LoopingQuad(Point(0,-84), 0.1, 'tracks.png', 1.0)
+        self.hills.angle = 0.05
+        self.tracks.angle = 0.1
         #self.sky.angle = -0.1
         self.train = Train(self)
         self.last = None

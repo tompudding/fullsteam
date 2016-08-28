@@ -252,7 +252,7 @@ class Reverser(Regulator):
         self.last_setting = 0
 
     def choose_setting(self, n):
-        if abs(self.train.speed) < 0.01:
+        if abs(self.train.steam_flow) < 0.01:
             self.Update(self.knob_settings[n])
             self.last_setting = n
             self.train.set_dir(1 if n == 0 else -1)
@@ -428,6 +428,7 @@ class Train(object):
 
     def Reset(self):
         self.health = 100
+        self.high_speed = 0
         self.coal_used = 0
         self.coal = 0
         self.moved = 0
@@ -511,13 +512,16 @@ class Train(object):
             self.speed = self.max_speed
         if self.speed < -self.max_speed:
             self.speed = -self.max_speed
+        if self.speed > self.high_speed:
+            self.high_speed = self.speed
         if abs(self.speed) < 0.03:
             if self.braking:
                 self.speed = 0
                 if self.parent.tutorial == self.parent.tutorial_brake:
                     self.parent.tutorial()
-            if level_left < 40 and self.speed < 0.01:
-                self.parent.mode.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time)
+            if abs(level_left) < 40 and self.speed < 0.01:
+                self.parent.mode.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time,self.high_speed)
+
 
         self.moved += self.speed
 
@@ -859,7 +863,8 @@ class GameView(ui.RootElement):
         self.mode.KeyDown(key)
 
     def KeyUp(self,key):
-        self.mode.level_fail(globals.time - self.start_time)
+        #self.mode.level_fail(globals.time - self.start_time)
+        self.mode.level_complete(0,100,21000,15.653)
         if key == pygame.K_DELETE:
             if self.music_playing:
                 self.music_playing = False

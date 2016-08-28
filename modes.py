@@ -77,7 +77,7 @@ class MainMenu(Mode):
     blurb  = 'FULL STEAM'
     blurbs = ["Always wanted to be a train driver",
               "Job One - Across the plains",
-              "Job Two - Jack and Jill went up the hill",
+              "Job Two - Jack and Jill ...",
               "Job Three - Down the mountain",
               "Job Three - To Eagle's Perch"]
     level_names = ['Tutorial',
@@ -88,12 +88,13 @@ class MainMenu(Mode):
 ]
     level_heights = [[0,0,0],        #Totally flat and short
                      [0,0,0,0,0,0,0,0], #Normal
-                     [0,200,400,100,-100,-300,0,400,600,300,100,0,0], # hilly
-                     [2000,1500,1400,1200,1000,800,400,200,0,0], #Downhill
+                     [0,0,200,100,-100,-300,0,400,600,300,100,0,200,400,100,-100,-300,0,400,600,300,100,0,0,0], # hilly
+                     [2000,1500,1400,1200,1000,800,400,200,0,0,0], #Downhill
                      [1000,900,800,600,400,200,0,100,200,400,600,800,1000,1200,1400,1600,1800,1000,500,0,0]] #Reach the perch]
     level_goals = [-2,-2,-2,-2,-5]
     coal_prices = [0,10,40,0,1]
-    times = [10,10,20,40,80]
+    times = [50,50,100,20,100]
+    time_bonus = [2,2,3,10,10,15]
     incline_transition = 0.4
 
     def __init__(self,parent):
@@ -156,7 +157,7 @@ class MainMenu(Mode):
                                          textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                          colour = (0,0,0,1),
                                          scale  = 2,
-                                         alignment = drawing.texture.TextAlignments.LEFT) for i in xrange(6)]
+                                         alignment = drawing.texture.TextAlignments.LEFT) for i in xrange(7)]
         self.content_boxes_right = [ui.TextBox(parent = self.frame,
                                                bl = Point(0.6,0.65 - i*0.05),
                                                tr = Point(0.9,0.72 - i*0.05),
@@ -164,7 +165,7 @@ class MainMenu(Mode):
                                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                                colour = (0,0,0,1),
                                                scale  = 2,
-                                               alignment = drawing.texture.TextAlignments.LEFT) for i in xrange(6)]
+                                               alignment = drawing.texture.TextAlignments.LEFT) for i in xrange(7)]
         for box in itertools.chain(self.content_boxes,self.content_boxes_right):
             box.Disable()
 
@@ -207,14 +208,14 @@ class MainMenu(Mode):
 
     def get_time_bonus(self, time_taken):
         target_time = self.times[self.current_level]
-        early = time_taken*1000 - target_time
-        bonus = (float(early)/1000)**2
+        early = target_time - float(time_taken)/1000
+        bonus = early*self.time_bonus[self.current_level]
         if bonus > 5000:
             bonus = 5000
         return bonus
 
 
-    def level_complete(self, coal_used, health, time_taken):
+    def level_complete(self, coal_used, health, time_taken, high_speed):
         self.playing = False
         self.backdrop.Enable()
         self.parent.Disable()
@@ -222,28 +223,31 @@ class MainMenu(Mode):
             label.Disable()
         self.underline.Enable()
         self.blurb_text.Enable()
-        print time_taken
+        time_taken_seconds = float(time_taken)/1000
         time_bonus = self.get_time_bonus(time_taken)
         for box in itertools.chain(self.content_boxes,self.content_boxes_right):
             box.Enable()
+        speed_mph = high_speed * 10
         self.blurb_text.SetText('Level Complete',colour=(0,0,0,1))
-        self.content_boxes[0].SetText('Payment',colour=(0,0,0,1))
-        self.content_boxes[1].SetText('Coal (%d * $%d)' % (coal_used, self.coal_prices[self.current_level]),colour=(0,0,0,1))
-        self.content_boxes[2].SetText('Time %s' % ('bonus' if time_bonus > 0 else 'penalty'),colour=(0,0,0,1))
-        self.content_boxes[3].SetText('Repairs',colour=(0,0,0,1))
-        self.content_boxes[4].SetText(' ',colour=(0,0,0,1))
-        self.content_boxes[5].SetText('Total',colour=(0,0,0,1))
+        self.content_boxes[0].SetText('Took %4.2f seconds, high speed %4.2d MPH' % (time_taken_seconds,speed_mph),colour=(0,0,0,1))
+        self.content_boxes[1].SetText('Payment',colour=(0,0,0,1))
+        self.content_boxes[2].SetText('Coal (%d * $%d)' % (coal_used, self.coal_prices[self.current_level]),colour=(0,0,0,1))
+        self.content_boxes[3].SetText('Time %s' % ('bonus' if time_bonus > 0 else 'penalty'),colour=(0,0,0,1))
+        self.content_boxes[4].SetText('Repairs',colour=(0,0,0,1))
+        self.content_boxes[5].SetText(' ',colour=(0,0,0,1))
+        self.content_boxes[6].SetText('Total',colour=(0,0,0,1))
 
         payment = 100
-        coal = coal_used*self.coal_prices[self.current_level]
+        coal = -coal_used*self.coal_prices[self.current_level]
         total = payment + coal + 100 - health + time_bonus
 
-        self.content_boxes_right[0].SetText('$ %3d.%02d' % (payment,0),colour=(0,0,0,1))
-        self.content_boxes_right[1].SetText('$ %3d.%02d' % (coal,0), colour=(0,0,0,1))
-        self.content_boxes_right[2].SetText('$ %3d.%02d' % (time_bonus,0),colour=(0,0,0,1))
-        self.content_boxes_right[3].SetText('$ %3d.%02d' % (100 - health,0),colour=(0,0,0,1))
-        self.content_boxes_right[4].SetText(' ------ ',colour=(0,0,0,1))
-        self.content_boxes_right[5].SetText('$ %d.%02d'% (total,0),colour=(0,0,0,1))
+        self.content_boxes_right[0].SetText(' ')
+        self.content_boxes_right[1].SetText('$ %3d.%02d' % (payment,0),colour=(0,0,0,1))
+        self.content_boxes_right[2].SetText('$ %3d.%02d' % (coal,0), colour=(0,0,0,1))
+        self.content_boxes_right[3].SetText('$ %3d.%02d' % (time_bonus,0),colour=(0,0,0,1))
+        self.content_boxes_right[4].SetText('$ %3d.%02d' % (100 - health,0),colour=(0,0,0,1))
+        self.content_boxes_right[5].SetText(' ------ ',colour=(0,0,0,1))
+        self.content_boxes_right[6].SetText('$ %d.%02d'% (total,0),colour=(0,0,0,1))
         self.level_back_button.Enable()
 
     def level_fail(self, time_taken):
@@ -282,6 +286,10 @@ class MainMenu(Mode):
         self.level_back_button.Enable()
         for box in itertools.chain(self.content_boxes,self.content_boxes_right):
             box.Disable()
+        self.content_boxes[0].SetText('Coal price : $%d' % self.coal_prices[level],colour=(0,0,0,1))
+        self.content_boxes[1].SetText('Time Bonus : $%d per second' % self.time_bonus[level],colour=(0,0,0,1))
+        self.content_boxes[0].Enable()
+        self.content_boxes[1].Enable()
 
     def level_length(self):
         return chunk_width * (len(self.level_heights[self.current_level]) + self.level_goals[self.current_level])

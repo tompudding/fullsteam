@@ -527,11 +527,6 @@ class LoopingQuad(object):
                                         Point(tr.x, tr.y),
                                         Point(tr.x, bl.y))):
                 vertices[j] = globals.rotation_offset + coord.Rotate(self.angle)
-            if 'tracks' in self.name and i == 0:
-                if self.moved > 300:
-                    print vertices,'***'
-                else:
-                    print vertices
 
             quad.SetAllVertices(vertices,self.z)
 
@@ -539,8 +534,14 @@ class LoopingQuad(object):
         self.moved = (moved*self.sf) % self.size.x
         self.set_coords()
 
+def smoothstep(last,target,x):
+    diff = (target - last)
+    height = last + diff*x*x*(3-2*x)
+    incline = (diff*6*x*(1-x))/3000
+    return -incline
 
 class GameView(ui.RootElement):
+    chunk_width = 3000
     def __init__(self):
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
@@ -552,6 +553,7 @@ class GameView(ui.RootElement):
         self.last = None
         self.move_direction = 0
         self.shake = 0
+        self.level_heights = [0,400,-600,0,0]
         self.text = ui.TextBox(parent = globals.screen_root,
                                bl     = Point(0,0.68)         ,
                                tr     = Point(1,0.78)         ,
@@ -571,6 +573,17 @@ class GameView(ui.RootElement):
         pass
         #pygame.mixer.music.play(-1)
         #self.music_playing = True
+
+    def get_incline(self):
+        print self.train.moved
+        chunk = int(1 + (float(self.train.moved) / self.chunk_width))
+        if chunk >= len(self.level_heights):
+            return 0
+        target = self.level_heights[chunk]
+        last = self.level_heights[chunk-1]
+        partial = float(self.train.moved % self.chunk_width) / self.chunk_width
+        return smoothstep(last,target,partial)
+
 
     def Draw(self):
         drawing.ResetState()
@@ -594,9 +607,7 @@ class GameView(ui.RootElement):
         elapsed = float(t - self.last)/1000
         self.last = t
 
-        float(t)/1000
-        self.incline = math.sin(math.pi*float(t)/10000)-0.5
-        self.incline = -math.pi*0.25
+        self.incline = self.get_incline()
         self.hills.angle = self.incline/2
         self.tracks.angle = self.incline
 

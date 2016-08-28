@@ -417,6 +417,7 @@ class Train(object):
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.465,0.770),Point(0.565,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
+        self.add_coal_text.Disable()
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
         self.clouds = []
@@ -441,6 +442,12 @@ class Train(object):
                                     Point(tr.x, bl.y))):
             vertices[i] = globals.rotation_offset + coord.Rotate(self.parent.incline)
         self.quad.SetAllVertices(vertices,0.2)
+
+    def Enable(self):
+        self.add_coal_text.Enable()
+
+    def Disable(self):
+        self.add_coal_text.Disable()
 
     def set_dir(self, direction):
         self.direction = direction
@@ -651,14 +658,6 @@ class LoopingQuad(object):
         self.moved = (moved*self.sf) % self.size.x
         self.set_coords()
 
-def smoothstep(last,target,x):
-    diff = (target - last)
-    height = last + diff*x*x*(3-2*x)
-    incline = (diff*6*x*(1-x))/3000
-    #That incline is a ratio, we want an angle
-    r,a = cmath.polar( 1 + incline*1j)
-    return -a
-
 class GameView(ui.RootElement):
     chunk_width = 3000
     def __init__(self):
@@ -668,7 +667,7 @@ class GameView(ui.RootElement):
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
         self.hills = LoopingQuad(Point(0,-50), 0.05, 'hills.png', 0.6)
         self.tracks = LoopingQuad(Point(0,-84), 0.1, 'tracks.png', 1.0)
-        self.incline = 0.3
+        self.incline = 0
         self.train = Train(self)
         self.last = None
         self.move_direction = 0
@@ -681,12 +680,12 @@ class GameView(ui.RootElement):
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                colour = drawing.constants.colours.black,
                                scale  = 2)
+        self.text.Disable()
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
         super(GameView,self).__init__(Point(0,0),globals.screen)
         #skip titles for development of the main game
-        self.mode = modes.GameMode(self)
-        #self.mode = modes.LevelOne(self)
+        self.mode = modes.LevelOne(self)
         self.StartMusic()
 
     def StartMusic(self):
@@ -694,15 +693,13 @@ class GameView(ui.RootElement):
         #pygame.mixer.music.play(-1)
         #self.music_playing = True
 
-    def get_incline(self):
-        chunk = int(1 + (float(self.train.moved) / self.chunk_width))
-        if chunk >= len(self.level_heights):
-            return 0
-        target = self.level_heights[chunk]
-        last = self.level_heights[chunk-1]
-        partial = float(self.train.moved % self.chunk_width) / self.chunk_width
-        return smoothstep(last,target,partial)
+    def Enable(self):
+        self.text.Enable()
+        self.train.Enable()
 
+    def Disable(self):
+        self.text.Disable()
+        self.train.Disable()
 
     def Draw(self):
         drawing.ResetState()
@@ -723,10 +720,15 @@ class GameView(ui.RootElement):
         if self.last is None:
             self.last = t
             return
+        if self.mode:
+            if not self.mode.Update(t):
+                #mode is not ready for us yet
+                return
+
         elapsed = float(t - self.last)/1000
         self.last = t
 
-        self.incline = self.get_incline()
+        self.incline = self.mode.get_incline(self.train.moved)
         self.hills.angle = self.incline/2
         self.tracks.angle = self.incline
 
@@ -735,8 +737,6 @@ class GameView(ui.RootElement):
         for backdrop in self.sky,self.tracks,self.hills:
             backdrop.Update(self.train.moved)
 
-        if self.mode:
-            self.mode.Update(t)
 
         if self.game_over:
             return
@@ -753,12 +753,8 @@ class GameView(ui.RootElement):
     def MouseButtonUp(self,pos,button):
         return self.mode.MouseButtonUp(pos, button)
 
-    def MouseMotion(self, pos, rel):
-        return self.mode.MouseMotion(pos, rel)
-
     def MouseMotion(self,pos,rel,handled):
-        if globals.dragging:
-            globals.dragging.motion(pos)
+        return self.mode.MouseMotion(pos, rel)
 
     def KeyDown(self,key):
         self.mode.KeyDown(key)

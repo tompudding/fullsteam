@@ -67,59 +67,88 @@ class Titles(Mode):
     def Startup(self,t):
         return TitleStages.STARTED
 
-class GameMode(Mode):
-    blurb = "Full Steam"
-    speed = 12
-    direction_amounts = {pygame.K_UP  :  0.01*speed,
-                         pygame.K_DOWN : -0.01*speed}
-    class KeyFlags:
-        LEFT  = 1
-        RIGHT = 2
-        UP    = 4
-        DOWN  = 8
-    keyflags = {pygame.K_a  : KeyFlags.LEFT,
-                pygame.K_d : KeyFlags.RIGHT,
-                pygame.K_UP    : KeyFlags.UP,
-                pygame.K_DOWN  : KeyFlags.DOWN}
+chunk_width = 3000
 
-    inv_keys = [pygame.K_1,pygame.K_2,pygame.K_3]
+def smoothstep(last,target,x):
+    diff = (target - last)
+    height = last + diff*x*x*(3-2*x)
+    incline = (diff*6*x*(1-x))/chunk_width
+    #That incline is a ratio, we want an angle
+    r,a = cmath.polar( 1 + incline*1j)
+    return -a
+
+class LevelOne(Mode):
+    blurb = "Job One - Across the plains"
+    level_heights = [0,0] #Totally flat and short
 
     def __init__(self,parent):
         self.parent = parent
         #bl = self.parent.GetRelative(self.parent.viewpos.pos)
         #self.parent.viewpos.Follow(globals.time,self.parent.map.player)
 
-        # tr = bl + self.parent.GetRelative(globals.screen)
-        # self.blurb_text = ui.TextBox(parent = self.parent,
-        #                              bl     = bl         ,
-        #                              tr     = tr         ,
-        #                              text   = self.blurb ,
-        #                              textType = drawing.texture.TextTypes.GRID_RELATIVE,
-        #                              colour = (1,1,1,1),
-        #                              scale  = 4)
+
+        self.backdrop = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords('parchment.png'))
+        self.backdrop_size = globals.atlas.SubimageSprite('parchment.png').size
+        backdrop_bl = Point(40,0)
+        backdrop_tr = backdrop_bl + self.backdrop_size
+        self.backdrop.SetVertices(backdrop_bl,backdrop_tr,10)
         self.keydownmap = 0
+        self.playing = False
+
+        self.frame = ui.UIElement(globals.screen_root,
+                                  globals.screen_root.GetRelative(backdrop_bl),
+                                  globals.screen_root.GetRelative(backdrop_tr))
+        #tr = bl + self.parent.GetRelative(globals.screen)
+        self.blurb_text = ui.TextBox(parent = self.frame,
+                                     bl     = Point(0.0,0.72) ,
+                                     tr     = Point(1,1) ,
+                                     text   = self.blurb ,
+                                     textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
+                                     colour = (0,0,0,1),
+                                     scale  = 3,
+                                     alignment = drawing.texture.TextAlignments.CENTRE,
+                                     )
+        self.ok_button = ui.TextBoxButton(self.frame, 'OK',Point(0.45,0.1),Point(0.55,0.17),size=2,callback=self.click_ok,colour=(0.0,0.0,0.0,1.0))
+
+    def click_ok(self, pos):
+        self.frame.Disable()
+        self.backdrop.Disable()
+        self.playing = True
+        self.parent.Enable()
+
+    def get_incline(self, moved):
+        chunk = int(1 + (float(moved) / chunk_width))
+        if chunk >= len(self.level_heights):
+            return 0
+        target = self.level_heights[chunk]
+        last = self.level_heights[chunk-1]
+        partial = float(moved % chunk_width) / chunk_width
+        return smoothstep(last,target,partial)
 
     def KeyDown(self,key):
-        if key in self.direction_amounts:
-            self.keydownmap |= self.keyflags[key]
-            self.parent.train.move_direction += self.direction_amounts[key]
-        if key == pygame.K_SPACE:
-            self.parent.train.add_coal(1)
-
+        pass
 
     def KeyUp(self,key):
-        if key in self.direction_amounts and (self.keydownmap & self.keyflags[key]):
-            self.keydownmap &= (~self.keyflags[key])
-            self.parent.train.move_direction -= self.direction_amounts[key]
+        pass
 
     def MouseButtonDown(self,pos,button):
-        return self.parent.train.mouse_button_down(pos,button)
+        if self.playing:
+            return self.parent.train.mouse_button_down(pos,button)
+        return False,False
 
     def MouseButtonUp(self,pos,button):
-        return self.parent.train.mouse_button_up(pos,button)
+        if self.playing:
+            return self.parent.train.mouse_button_up(pos,button)
+        return False,False
 
     def MouseMotion(self,pos,rel):
-        pass
+        if self.playing:
+            if globals.dragging:
+                globals.dragging.motion(pos)
+
+
+    def Update(self, t):
+        return self.playing
 
 
 

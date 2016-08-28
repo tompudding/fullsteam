@@ -35,11 +35,8 @@ class Wheel(object):
         self.quad.SetAllVertices(self.vertices, 0.3)
 
     def get_point(self, r):
-        pos = globals.rotation_offset + (self.pos - globals.rotation_offset).Rotate(self.train.parent.incline)
-        p = self.coords[0][0] + self.coords[0][1]*1j
-        distance,angle = cmath.polar(p)
-        c = cmath.rect(distance*r,angle + (self.angle-self.initial_angle) + self.train.parent.incline)
-        return pos + Point(c.real, c.imag)
+        c = cmath.rect(self.radius*r, (self.angle-self.initial_angle) )
+        return self.pos + Point(c.real, c.imag)
 
     def Update(self, moved):
         self.angle = self.initial_angle + (moved/self.radius)
@@ -481,11 +478,17 @@ class Train(object):
 
     def draw_bars(self, elapsed):
         #Do the wheel bar first
-        a = self.wheels[0].get_point(0.6)
-        b = self.wheels[1].get_point(0.6)
-        bl = a - Point(2,2)
-        tr = b + Point(2,2)
-        self.bars[0].SetVertices(bl,tr,0.7)
+        a = self.wheels[0].get_point(0.7)
+        #b = self.wheels[1].get_point(0.6)
+        bl = a - globals.rotation_offset
+        tr = bl + Point(42,4)
+        vertices = [0,0,0,0]
+        for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                    Point(bl.x, tr.y),
+                                    Point(tr.x, tr.y),
+                                    Point(tr.x, bl.y))):
+            vertices[i] = globals.rotation_offset + coord.Rotate(self.parent.incline)
+        self.bars[0].SetAllVertices(vertices,0.7)
 
     def Update(self, elapsed):
         #if self.move_direction:

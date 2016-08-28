@@ -709,6 +709,9 @@ class GameView(ui.RootElement):
         self.StartMusic()
         self.Reset()
 
+    def add_pause_time(self, amount):
+        self.start_time += amount
+
     def Reset(self):
         self.train.Reset()
         self.incline = 0

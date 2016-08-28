@@ -157,7 +157,7 @@ class Regulator(object):
             c = cmath.rect(distance,old_angle + new_angle)
             vertices[i] = self.knob_pos + Point(c.real, c.imag)
 
-        self.knob_quad.SetAllVertices(vertices, 0.5)
+        self.knob_quad.SetAllVertices(vertices, 5.5)
 
     def __contains__(self, item):
         return (item.x >= self.pos.x) and (item.x < self.pos.x + self.size.x) and (item.y >= self.pos.y) and (item.y < self.pos.y + self.size.y)
@@ -300,7 +300,6 @@ class Train(object):
         self.pos = Point(20,43)
         self.size = globals.atlas.SubimageSprite(self.name).size
         self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
-        self.quad.SetVertices(self.pos,self.pos + self.size,0.2)
         self.pressure_gauge = PressureGauge(self)
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
@@ -320,6 +319,21 @@ class Train(object):
         self.pressure = 0
         self.steam_flow = 0
         self.braking = 0
+        self.set_vertices()
+
+    def set_vertices(self):
+        if self.parent.incline == 0:
+            return self.quad.SetVertices(self.pos,self.pos + self.size,0.2)
+        offset = Point(globals.screen.x/2,0)
+        bl = self.pos - offset
+        tr = bl + self.size
+        vertices = [0,0,0,0]
+        for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                    Point(bl.x, tr.y),
+                                    Point(tr.x, tr.y),
+                                    Point(tr.x, bl.y))):
+            vertices[i] = offset + coord.Rotate(self.parent.incline)
+        self.quad.SetAllVertices(vertices,0.2)
 
 
     def Update(self, elapsed):
@@ -327,6 +341,7 @@ class Train(object):
         #    self.speed += self.move_direction*elapsed*10
         #Burn fuel in the engine
         #print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f, brake : %4.2f, health : %6.2f' % (self.coal, self.pressure, self.speed, self.braking, self.health)
+        self.set_vertices()
         self.burn(elapsed)
 
         if self.steam_flow > 0:
@@ -427,7 +442,13 @@ class Train(object):
 
     def add_steam(self, num, steam=True, pos=None):
         for i in xrange(num):
-            new_cloud = Cloud(pos if pos is not None else self.spout_pos, 3000, self.moved, steam=steam)
+            pos = pos if pos is not None else self.spout_pos
+            if self.parent.incline != 0:
+                offset = Point(globals.screen.x/2,0)
+                new_pos = offset + (pos-offset).Rotate(self.parent.incline)
+            else:
+                new_pos = pos
+            new_cloud = Cloud(new_pos, 3000, self.moved, steam=steam)
             self.clouds.insert(0, new_cloud)
         for cloud in self.clouds[self.max_clouds:]:
             cloud.Destroy()
@@ -520,8 +541,9 @@ class GameView(ui.RootElement):
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
         self.hills = LoopingQuad(Point(0,-50), 0.05, 'hills.png', 0.6)
         self.tracks = LoopingQuad(Point(0,-84), 0.1, 'tracks.png', 1.0)
-        self.hills.angle = 0.05
-        self.tracks.angle = 0.1
+        self.incline = -0.1
+        self.hills.angle = self.incline/2
+        self.tracks.angle = self.incline
         #self.sky.angle = -0.1
         self.train = Train(self)
         self.last = None

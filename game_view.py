@@ -197,6 +197,10 @@ class Regulator(object):
             self.choose_setting(2)
 
     def choose_setting(self, n):
+        if self.train.parent.tutorial == self.train.parent.tutorial_regulator_on and n == 1:
+            self.train.parent.tutorial()
+        elif self.train.parent.tutorial == self.train.parent.tutorial_regulator_off and n == 0:
+            self.train.parent.tutorial()
         self.Update(self.knob_settings[n])
         #possibly play sound here
         self.train.set_steam(n*0.5)
@@ -477,8 +481,6 @@ class Train(object):
         flag_bl = Point(120,40) - Point(level_left,0)
         flag_tr = flag_bl + self.flag_size
         self.flag_quad.SetVertices(flag_bl, flag_tr, 0.1)
-        if level_left < 40 and self.speed < 0.01:
-            self.move.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time)
 
 
         self.distance_text.SetText('%7.2f' % (level_left), colour = (0,0,0,1))
@@ -509,8 +511,14 @@ class Train(object):
             self.speed = self.max_speed
         if self.speed < -self.max_speed:
             self.speed = -self.max_speed
-        if abs(self.speed) < 0.03 and self.braking:
-            self.speed = 0
+        if abs(self.speed) < 0.03:
+            if self.braking:
+                self.speed = 0
+                if self.parent.tutorial == self.parent.tutorial_brake:
+                    self.parent.tutorial()
+            if level_left < 40 and self.speed < 0.01:
+                self.parent.end_tutorial()
+                self.parent.mode.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time)
 
         self.moved += self.speed
 
@@ -528,6 +536,8 @@ class Train(object):
     def add_coal_button(self, pos):
         self.add_coal(1)
         self.coal_used += 1
+        if self.parent.tutorial == self.parent.tutorial_coal:
+            self.parent.tutorial()
 
 
     def damage(self, elapsed):
@@ -618,6 +628,8 @@ class Train(object):
             self.pressure = self.max_pressure
         if self.pressure < 0:
             self.pressure = 0
+        if self.parent.tutorial == self.parent.tutorial_pressure and self.pressure > self.min_pressure:
+            self.parent.tutorial()
 
     def set_steam(self, value):
         self.steam_flow = value
@@ -684,6 +696,7 @@ class LoopingQuad(object):
 class GameView(ui.RootElement):
     def __init__(self):
         self.start_time_hours = 0
+        self.tutorial = False
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
@@ -707,7 +720,7 @@ class GameView(ui.RootElement):
                                colour = drawing.constants.colours.black,
                                scale  = 2)
         self.tutorial_text = ui.TextBox(parent = globals.screen_root,
-                                        bl = Point(0,0),
+                                        bl = Point(-0.02,0),
                                         tr = Point(1,0.1),
                                         text = ' ',
                                         textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
@@ -715,7 +728,6 @@ class GameView(ui.RootElement):
                                         scale = 2,
                                         alignment = drawing.texture.TextAlignments.LEFT)
         self.tutorial_text.Disable()
-        self.tutorial = False
         self.text.Disable()
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
@@ -726,9 +738,33 @@ class GameView(ui.RootElement):
         self.Reset()
 
     def start_tutorial(self):
-        self.tutorial = True
+        self.tutorial = self.tutorial_just_click
         self.tutorial_text.SetText('Howdy Pardner! Welcome to the railroad. Click on this text to begin')
         self.tutorial_text.Enable()
+
+    def tutorial_just_click(self):
+        self.tutorial = self.tutorial_coal
+        self.tutorial_text.SetText('To get started add some coal into the boiler. Only one for now')
+
+    def tutorial_coal(self):
+        self.tutorial = self.tutorial_pressure
+        self.tutorial_text.SetText('Now wait for the pressure indicator to pass the green line')
+
+    def tutorial_pressure(self):
+        self.tutorial = self.tutorial_regulator_on
+        self.tutorial_text.SetText('Great now ease the regulator in position 1; half steam')
+
+    def tutorial_regulator_on(self):
+        self.tutorial = self.tutorial_regulator_off
+        self.tutorial_text.SetText('We\'re underway! Keep and eye on the distance and switch the regulator to 0 around 500')
+
+    def tutorial_regulator_off(self):
+        self.tutorial = self.tutorial_brake
+        self.tutorial_text.SetText('Now *gently* apply the brake to stop. Too much can damage the train')
+
+    def tutorial_brake(self):
+        self.tutorial = None
+        self.tutorial_text.SetText('Brilliant. Now try to reach the flag at distance 0')
 
     def end_tutorial(self):
         self.tutorial = False
@@ -810,8 +846,8 @@ class GameView(ui.RootElement):
         return self.mode.MouseButtonDown(pos, button)
 
     def MouseButtonUp(self,pos,button):
-        if self.tutorial and pos.y < 15:
-            print 'next'
+        if self.tutorial == self.tutorial_just_click and pos.y < 15:
+            self.tutorial()
         return self.mode.MouseButtonUp(pos, button)
 
     def MouseMotion(self,pos,rel,handled):

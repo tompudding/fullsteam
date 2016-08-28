@@ -71,11 +71,7 @@ chunk_width = 1000
 
 def smoothstep(last,target,x):
     diff = (target - last)
-    height = last + diff*x*x*(3-2*x)
-    incline = (diff*6*x*(1-x))/chunk_width
-    #That incline is a ratio, we want an angle
-    r,a = cmath.polar( 1 + incline*1j)
-    return -a
+    return last + diff*x*x*(3-2*x)
 
 class MainMenu(Mode):
     blurb  = 'FULL STEAM'
@@ -90,8 +86,8 @@ class MainMenu(Mode):
     level_heights = [[0,0],        #Totally flat and short
                      [0,0,0,0,0,0], #Normal
                      [2000,1500,1400,1200,1000,800,400,200,0], #Downhill
-                     [1000,900,800,600,400,200,0,100,200,400,600,800,1000,500,0]] #Reach the perch]
-
+                     [1000,900,800,600,400,200,0,100,200,400,600,800,1000,1200,1400,1600,1800,1000,500,0]] #Reach the perch]
+    incline_transition = 0.4
 
     def __init__(self,parent):
         self.parent = parent
@@ -108,6 +104,17 @@ class MainMenu(Mode):
         self.playing = False
         self.current_level = 0
         self.pause_time = 0
+        self.level_inclines = []
+        for i,level_heights in enumerate(self.level_heights):
+            inclines = [0]
+            for j in xrange(len(level_heights)-1):
+                current = level_heights[j]
+                next = level_heights[j+1]
+                diff = next - current
+                incline = float(diff)/chunk_width
+                r,a = cmath.polar( 1 + incline*1j)
+                inclines.append(-a)
+            self.level_inclines.append(inclines)
 
         self.frame = ui.UIElement(globals.screen_root,
                                   globals.screen_root.GetRelative(backdrop_bl),
@@ -180,7 +187,6 @@ class MainMenu(Mode):
         self.quit_button.Disable()
         self.level_back_button.Enable()
 
-
     def level_length(self):
         return chunk_width * (len(self.level_heights[self.current_level])-1)
 
@@ -188,6 +194,10 @@ class MainMenu(Mode):
         self.frame.Disable()
         self.backdrop.Disable()
         self.playing = True
+        if self.current_level == 0:
+            self.parent.start_tutorial()
+        else:
+            self.parent.end_tutorial()
         self.parent.Enable()
         self.parent.Reset()
 
@@ -199,12 +209,14 @@ class MainMenu(Mode):
 
     def get_incline(self, moved):
         chunk = int(1 + (float(moved) / chunk_width))
-        if chunk >= len(self.level_heights[self.current_level]):
+        if chunk >= len(self.level_inclines[self.current_level]):
             return 0
-        target = self.level_heights[self.current_level][chunk]
-        last = self.level_heights[self.current_level][chunk-1]
+        target = self.level_inclines[self.current_level][chunk]
+        last = self.level_inclines[self.current_level][chunk-1]
         partial = float(moved % chunk_width) / chunk_width
-        return smoothstep(last,target,partial)
+        incline = smoothstep(last,target,partial)
+        return incline
+
 
     def KeyDown(self,key):
         pass

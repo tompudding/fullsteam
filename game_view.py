@@ -700,6 +700,16 @@ class GameView(ui.RootElement):
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                colour = drawing.constants.colours.black,
                                scale  = 2)
+        self.tutorial_text = ui.TextBox(parent = globals.screen_root,
+                                        bl = Point(0,0),
+                                        tr = Point(1,0.1),
+                                        text = ' ',
+                                        textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
+                                        colour = drawing.constants.colours.white,
+                                        scale = 2,
+                                        alignment = drawing.texture.TextAlignments.LEFT)
+        self.tutorial_text.Disable()
+        self.tutorial = False
         self.text.Disable()
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
@@ -708,6 +718,15 @@ class GameView(ui.RootElement):
         self.mode = modes.MainMenu(self)
         self.StartMusic()
         self.Reset()
+
+    def start_tutorial(self):
+        self.tutorial = True
+        self.tutorial_text.SetText('Howdy Pardner! Welcome to the railroad. Click on this text to begin')
+        self.tutorial_text.Enable()
+
+    def end_tutorial(self):
+        self.tutorial = False
+        self.tutorial_text.Disable()
 
     def add_pause_time(self, amount):
         self.start_time += amount
@@ -783,6 +802,8 @@ class GameView(ui.RootElement):
         return self.mode.MouseButtonDown(pos, button)
 
     def MouseButtonUp(self,pos,button):
+        if self.tutorial and pos.y < 15:
+            print 'next'
         return self.mode.MouseButtonUp(pos, button)
 
     def MouseMotion(self,pos,rel,handled):

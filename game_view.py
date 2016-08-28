@@ -505,7 +505,7 @@ class LoopingQuad(object):
         self.name = name
         self.z = z
         self.sf = sf
-        self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(3)]
+        self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(4)]
         self.size = globals.atlas.SubimageSprite(self.name).size
         self.centre = self.pos + (self.size*0.5)
         self.tc = globals.atlas.TextureSpriteCoords(self.name)
@@ -517,16 +517,22 @@ class LoopingQuad(object):
 
     def set_coords(self):
         for (i,quad) in enumerate(self.quads):
-            view_offset = Point((i-1)*self.size.x + self.moved,0)
+            view_offset = Point((i-2)*self.size.x + self.moved,0)
 
             bl = self.pos - globals.rotation_offset + view_offset
             tr = bl + self.size
             vertices = [0,0,0,0]
-            for (i,coord) in enumerate((Point(bl.x, bl.y),
+            for (j,coord) in enumerate((Point(bl.x, bl.y),
                                         Point(bl.x, tr.y),
                                         Point(tr.x, tr.y),
                                         Point(tr.x, bl.y))):
-                vertices[i] = globals.rotation_offset + coord.Rotate(self.angle)
+                vertices[j] = globals.rotation_offset + coord.Rotate(self.angle)
+            if 'tracks' in self.name and i == 0:
+                if self.moved > 300:
+                    print vertices,'***'
+                else:
+                    print vertices
+
             quad.SetAllVertices(vertices,self.z)
 
     def Update(self, moved):
@@ -590,6 +596,7 @@ class GameView(ui.RootElement):
 
         float(t)/1000
         self.incline = math.sin(math.pi*float(t)/10000)-0.5
+        self.incline = -math.pi*0.25
         self.hills.angle = self.incline/2
         self.tracks.angle = self.incline
 

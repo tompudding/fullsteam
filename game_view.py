@@ -44,7 +44,7 @@ class PressureGauge(object):
     start = math.pi/4
     name = 'pressure.png'
     arrow_name = 'arrow.png'
-    start_pos = Point(0.02,0.72)
+    start_pos = Point(-0.02,0.72)
     wobble = 0.2
     centre = Point(24,32)
     arrow_coords = ((-11,-3),(-11,3),(9,3),(9,-3))
@@ -89,14 +89,14 @@ class PressureGauge(object):
 
 class Speedo(PressureGauge):
     name = 'speed.png'
-    start_pos = Point(0.13,0.72)
+    start_pos = Point(0.085,0.72)
     wobble = 0.2
 
 #The position should be an argument, it's crazy to make classes just for a different position
 #oh well, ludum rush
 
 class CoalDial(PressureGauge):
-    start_pos = Point(0.51,0.85)
+    start_pos = Point(0.47,0.85)
     name = 'dial.png'
     arrow_name = 'needle.png'
     wobble = 0.2
@@ -117,7 +117,7 @@ class HealthDial(CoalDial):
 class Regulator(object):
     name = 'regulator.png'
     knob_name = 'regulator_knob.png'
-    start_pos = Point(0.25,0.74)
+    start_pos = Point(0.205,0.74)
     start_angle = 0.45
     end_angle   = -0.27
     knob_settings = (0.45,0.13,-0.25)
@@ -190,7 +190,7 @@ class Regulator(object):
 class Reverser(Regulator):
     name = None
     knob_name = 'reverser.png'
-    start_pos = Point(0.73,0.72)
+    start_pos = Point(0.69,0.72)
     start_angle = 0.45
     end_angle   = -0.4
     knob_settings = (0.45,-0.25)
@@ -219,7 +219,7 @@ class Reverser(Regulator):
         p = diff.x + diff.y*1j
         r,a = cmath.polar(p)
         print diff,r,a
-        if r > 20 and r < 30 and a > -0.45 and a < 0.65:
+        if r > 15 and r < 30 and a > -0.45 and a < 0.7:
             return True, self
         return False, False
 
@@ -238,7 +238,7 @@ class Reverser(Regulator):
 
 class Brake(object):
     knob_name = 'brake_handle.png'
-    start_pos = Point(0.32,0.72)
+    start_pos = Point(0.28,0.72)
     start_angle = 0.6
     end_angle   = -0.27
     def __init__(self, train):
@@ -367,7 +367,7 @@ class Train(object):
         self.direction = 1
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
-        self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.51,0.770),Point(0.61,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
+        self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.465,0.770),Point(0.565,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
         self.clouds = []
@@ -624,9 +624,9 @@ class GameView(ui.RootElement):
         self.shake = 0
         self.level_heights = [0,0,400,-600,0,0]
         self.text = ui.TextBox(parent = globals.screen_root,
-                               bl     = Point(0,0.68)         ,
-                               tr     = Point(1,0.78)         ,
-                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health' ,
+                               bl     = Point(-0.045,0.69)         ,
+                               tr     = Point(1,0.79)         ,
+                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health   Reverser' ,
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                colour = drawing.constants.colours.black,
                                scale  = 2)

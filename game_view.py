@@ -309,6 +309,7 @@ class Train(object):
         self.health = 100
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
+        self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.51,0.770),Point(0.61,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
         self.clouds = []
@@ -325,7 +326,7 @@ class Train(object):
         #if self.move_direction:
         #    self.speed += self.move_direction*elapsed*10
         #Burn fuel in the engine
-        print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f, brake : %4.2f, health : %6.2f' % (self.coal, self.pressure, self.speed, self.braking, self.health)
+        #print 'coal : %4.2f, pressure : %4.2f, speed : %4.2f, brake : %4.2f, health : %6.2f' % (self.coal, self.pressure, self.speed, self.braking, self.health)
         self.burn(elapsed)
 
         if self.steam_flow > 0:
@@ -362,6 +363,9 @@ class Train(object):
         self.coal_dial.Update(self.coal, elapsed)
         self.clouds = [cloud for cloud in self.clouds if cloud.Update(self.moved, elapsed)]
         #self.regulator.Update(0)
+
+    def add_coal_button(self, pos):
+        self.add_coal(1)
 
     def damage(self, elapsed):
         over_speed = self.speed - self.safe_speed

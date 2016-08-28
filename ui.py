@@ -455,7 +455,10 @@ class TextBox(UIElement):
         self.lowest_y = 0
         row_height = (float(self.text_manager.font_height*self.scale*drawing.texture.global_scale)/self.absolute.size.y)
         #Do this without any kerning or padding for now, and see what it looks like
-        cursor = Point(self.margin.x,-self.viewpos + 1 - row_height-self.margin.y)
+        print row_height,self.viewpos,self.margin.y
+        y = -self.viewpos + (1 - (row_height-self.margin.y))/2
+        #y = 0
+        cursor = Point(self.margin.x,y)
         letter_sizes = [Point(float(quad.width *self.scale*drawing.texture.global_scale)/self.absolute.size.x,
                               float(quad.height*self.scale*drawing.texture.global_scale)/self.absolute.size.y) for quad in self.quads]
         #for (i,(quad,letter_size)) in enumerate(zip(self.quads,letter_sizes)):
@@ -464,7 +467,7 @@ class TextBox(UIElement):
             if i in self.newlines:
                 i += 1
                 cursor.x = self.margin.x
-                cursor.y -= row_height*1.2
+                cursor.y -= (row_height)*0.8
                 continue
             quad,letter_size = self.quads[i],letter_sizes[i]
             if cursor.x + letter_size.x > (1-self.margin.x)*1.001:
@@ -491,7 +494,7 @@ class TextBox(UIElement):
                     restart = True
 
                 cursor.x = self.margin.x
-                cursor.y -= row_height*1.2
+                cursor.y -= (row_height)*0.8
                 if restart:
                     continue
 
@@ -790,7 +793,7 @@ class ScrollTextBox(TextBox):
             #self.UpdatePosition()
 
 class TextBoxButton(TextBox):
-    def __init__(self,parent,text,pos,tr=None,size=0.5,callback = None,line_width=2,colour=None):
+    def __init__(self,parent,text,pos,tr=None,size=0.5,callback = None,line_width=1,colour=None):
         self.callback    = callback
         self.line_width  = line_width
         self.hovered     = False
@@ -798,7 +801,7 @@ class TextBoxButton(TextBox):
         self.depressed   = False
         self.enabled     = False
         self.colour      = colour
-        super(TextBoxButton,self).__init__(parent,pos,tr,text,size,colour = colour)
+        super(TextBoxButton,self).__init__(parent,pos,tr,text,size,colour = colour,alignment=drawing.texture.TextAlignments.CENTRE)
         for i in xrange(4):
             self.hover_quads[i].Disable()
         self.registered = False

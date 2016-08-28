@@ -697,7 +697,7 @@ class GameView(ui.RootElement):
         #self.music_playing = False
         super(GameView,self).__init__(Point(0,0),globals.screen)
         #skip titles for development of the main game
-        self.mode = modes.LevelOne(self)
+        self.mode = modes.MainMenu(self)
         self.StartMusic()
 
     def StartMusic(self):

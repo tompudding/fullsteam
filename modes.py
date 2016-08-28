@@ -67,7 +67,7 @@ class Titles(Mode):
     def Startup(self,t):
         return TitleStages.STARTED
 
-chunk_width = 3000
+chunk_width = 1000
 
 def smoothstep(last,target,x):
     diff = (target - last)
@@ -77,9 +77,21 @@ def smoothstep(last,target,x):
     r,a = cmath.polar( 1 + incline*1j)
     return -a
 
-class LevelOne(Mode):
-    blurb = "Job One - Across the plains"
-    level_heights = [0,0] #Totally flat and short
+class MainMenu(Mode):
+    blurb  = 'FULL STEAM'
+    blurbs = ["Always wanted to be a train driver",
+              "Job One - Across the plains",
+              "Job Two - Down the mountain",
+              "Job Three - To Eagle's Perch"]
+    level_names = ['Tutorial',
+                   'Job One',
+                   'Job Two',
+                   'Job Three']
+    level_heights = [[0,0],        #Totally flat and short
+                     [0,0,0,0,0,0], #Normal
+                     [2000,1500,1400,1200,1000,800,400,200,0], #Downhill
+                     [1000,900,800,600,400,200,0,100,200,400,600,800,1000,500,0]] #Reach the perch]
+
 
     def __init__(self,parent):
         self.parent = parent
@@ -94,6 +106,8 @@ class LevelOne(Mode):
         self.backdrop.SetVertices(backdrop_bl,backdrop_tr,10)
         self.keydownmap = 0
         self.playing = False
+        self.main_menu = True
+        self.current_level = 0
 
         self.frame = ui.UIElement(globals.screen_root,
                                   globals.screen_root.GetRelative(backdrop_bl),
@@ -108,10 +122,58 @@ class LevelOne(Mode):
                                      scale  = 3,
                                      alignment = drawing.texture.TextAlignments.CENTRE,
                                      )
-        self.ok_button = ui.TextBoxButton(self.frame, 'OK',Point(0.45,0.1),Point(0.55,0.17),size=2,callback=self.click_ok,colour=(0.0,0.0,0.0,1.0))
+        self.underline = ui.TextBox(parent = self.frame,
+                                     bl     = Point(0.0,0.67) ,
+                                     tr     = Point(1,0.95) ,
+                                     text   = '**********' ,
+                                     textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
+                                     colour = (0,0,0,1),
+                                     scale  = 3,
+                                     alignment = drawing.texture.TextAlignments.CENTRE,
+                                     )
+        self.level_ok_button = ui.TextBoxButton(self.frame, 'OK',Point(0.4,0.15),Point(0.5,0.22),size=2,callback=self.click_ok,colour=(0.0,0.0,0.0,1.0))
+
+        self.level_back_button = ui.TextBoxButton(self.frame, 'Back',Point(0.5,0.15),Point(0.6,0.22),size=2,callback=self.click_back,colour=(0.0,0.0,0.0,1.0))
+        self.quit_button = ui.TextBoxButton(self.frame, 'QUIT',Point(0.45,0.1),Point(0.55,0.17),size=2,callback=self.click_quit,colour=(0.0,0.0,0.0,1.0))
+        self.level_callbacks = [self.click_tutorial,self.click_level_one,self.click_level_two,self.click_level_three]
+        self.level_buttons = [ui.TextBoxButton(self.frame, self.level_names[i],Point(0.4,0.6-0.075*i),Point(0.6,0.66-0.075*i),size=2,callback=self.level_callbacks[i],colour=(0.0,0.0,0.0,1.0)) for i in xrange(4)]
+        self.show_main_menu()
+
+    def show_main_menu(self):
+        self.level_ok_button.Disable()
+        self.level_back_button.Disable()
+        for label in self.level_buttons:
+            label.Enable()
+        self.blurb_text.SetText(self.blurb,colour=(0,0,0,1))
+        self.quit_button.Enable()
+        self.underline.Enable()
+
+    def click_tutorial(self,pos):
+        self.show_level_intro(0)
+
+    def click_level_one(self,pos):
+        self.show_level_intro(1)
+
+    def click_level_two(self, pos):
+        self.show_level_intro(2)
+
+    def click_level_three(self, pos):
+        self.show_level_intro(3)
+
+    def show_level_intro(self, level):
+        for label in self.level_buttons:
+            label.Disable()
+        self.underline.Disable()
+        self.current_level = level
+        self.blurb_text.Enable()
+        self.blurb_text.SetText(self.blurbs[level],colour=(0,0,0,1))
+        self.level_ok_button.Enable()
+        self.quit_button.Disable()
+        self.level_back_button.Enable()
+
 
     def level_length(self):
-        return chunk_width * (len(self.level_heights)-1)
+        return chunk_width * (len(self.level_heights[self.current_level])-1)
 
     def click_ok(self, pos):
         self.frame.Disable()
@@ -119,12 +181,18 @@ class LevelOne(Mode):
         self.playing = True
         self.parent.Enable()
 
+    def click_back(self, pos):
+        self.show_main_menu()
+
+    def click_quit(self, pos):
+        raise SystemExit(0)
+
     def get_incline(self, moved):
         chunk = int(1 + (float(moved) / chunk_width))
-        if chunk >= len(self.level_heights):
+        if chunk >= len(self.level_heights[self.current_level]):
             return 0
-        target = self.level_heights[chunk]
-        last = self.level_heights[chunk-1]
+        target = self.level_heights[self.current_level][chunk]
+        last = self.level_heights[self.current_level][chunk-1]
         partial = float(moved % chunk_width) / chunk_width
         return smoothstep(last,target,partial)
 

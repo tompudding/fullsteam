@@ -483,44 +483,30 @@ class LoopingQuad(object):
         self.name = name
         self.z = z
         self.sf = sf
-        self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(2)]
+        self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(3)]
         self.size = globals.atlas.SubimageSprite(self.name).size
         self.centre = self.pos + (self.size*0.5)
         self.tc = globals.atlas.TextureSpriteCoords(self.name)
+        for quad in self.quads:
+            quad.SetTextureCoordinates(self.tc)
         self.moved = 10
         self.angle = 0
         self.set_coords()
 
     def set_coords(self):
-        #The first quad is the amount moved
-        offset = Point(self.size.x/2,0)
-        bl = self.pos - offset
-        tr = Point(self.pos.x + self.moved, self.pos.y + self.size.y) -offset
-        vertices = [0,0,0,0]
-        for (i,coord) in enumerate((Point(bl.x, bl.y),
-                                    Point(bl.x, tr.y),
-                                    Point(tr.x, tr.y),
-                                    Point(tr.x, bl.y))):
-            vertices[i] = offset + coord.Rotate(self.angle)
-        self.quads[0].SetAllVertices(vertices,self.z)
-        # #The texture coordinate is
-        moved_partial = 1-float(self.moved)/self.size.x
-        coords = [[moved_partial,0],[moved_partial,1],[1,1],[1,0]]
-        globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
-        self.quads[0].SetTextureCoordinates(coords)
-        #The second goes from moved to the end
-        bl = self.pos + Point(self.moved,0) - offset
-        tr = Point(self.pos.x + self.size.x,self.pos.y + self.size.y) -offset
-        for (i,coord) in enumerate((Point(bl.x, bl.y),
-                                    Point(bl.x, tr.y),
-                                    Point(tr.x, tr.y),
-                                    Point(tr.x, bl.y))):
-            vertices[i] = offset + coord.Rotate(self.angle)
-        #self.quads[1].SetVertices(self.pos + Point(self.moved,0), Point(self.pos.x + self.size.x,self.pos.y + self.size.y), self.z)
-        self.quads[1].SetAllVertices(vertices,self.z)
-        coords = [[0,0],[0,1],[moved_partial,1],[moved_partial,0]]
-        tc = globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
-        self.quads[1].SetTextureCoordinates(coords)
+        for (i,quad) in enumerate(self.quads):
+            view_offset = Point((i-1)*self.size.x + self.moved,0)
+
+            offset = Point(self.size.x/2,0)
+            bl = self.pos - offset + view_offset
+            tr = bl + self.size
+            vertices = [0,0,0,0]
+            for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                        Point(bl.x, tr.y),
+                                        Point(tr.x, tr.y),
+                                        Point(tr.x, bl.y))):
+                vertices[i] = offset + coord.Rotate(self.angle)
+            quad.SetAllVertices(vertices,self.z)
 
     def Update(self, moved):
         self.moved = (moved*self.sf) % self.size.x

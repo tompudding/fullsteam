@@ -507,6 +507,12 @@ class GameView(ui.RootElement):
         self.last = None
         self.move_direction = 0
         self.shake = 0
+        self.text = ui.TextBox(parent = globals.screen_root,
+                               bl     = Point(0,0)         ,
+                               tr     = Point(0.5,0.5)         ,
+                               text   = 'I am the very model of a modern major general' ,
+                               textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
+                               scale  = 4)
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
         super(GameView,self).__init__(Point(0,0),globals.screen)

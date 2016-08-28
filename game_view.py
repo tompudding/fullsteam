@@ -221,6 +221,34 @@ class Brake(object):
             a = self.start_angle
         self.Update(a)
 
+class Cloud(object):
+    rise_speed = 30
+    def __init__(self,start,duration,pos):
+        self.x_coord = pos
+        self.start_pos = start
+        self.duration = duration
+        self.start_time = globals.time
+        self.end_time = self.start_time + duration
+        self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords("steam.png"))
+
+    def Update(self, moved, elapsed):
+        if globals.time > self.end_time:
+            self.quad.Delete()
+            return False
+
+        partial = float(globals.time-self.start_time)/self.duration
+        size = Point(64.0,64.0)*(partial+0.2)
+        height = (float(globals.time - self.start_time)/1000)*self.rise_speed
+        bl = self.start_pos + Point(moved - self.x_coord,height) - (size*0.5)
+        tr = bl + size
+        self.quad.SetVertices(bl,tr,0.35)
+        self.quad.SetColour((1,1,1,1-partial**2))
+        return True
+
+    def Destroy(self):
+        self.quad.Delete()
+
+
 class Train(object):
     max_speed = 20
     safe_speed = 13
@@ -233,18 +261,22 @@ class Train(object):
     friction = 0.02
     safe_pressure = 0.65
     safe_braking = 1
+    max_clouds = 150
+    name = 'train.png'
     def __init__(self,parent):
         self.parent = parent
-        self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords('train.png'))
-        self.quad.SetVertices(Point(20,43),Point(300,43+80),0.2)
+        self.pos = Point(20,43)
+        self.size = globals.atlas.SubimageSprite(self.name).size
+        self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
+        self.quad.SetVertices(self.pos,self.pos + self.size,0.2)
         self.pressure_gauge = PressureGauge(self)
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
         self.brake = Brake(self)
         self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
+        self.spout_pos = self.pos + Point(53,67)
+        self.clouds = []
         self.move_direction = 0
-        #self.wheel = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(os.path.join('wheel.png')))
-        #self.wheel.SetVertices(Point(20+99,43),Point(20+99+28,43+28),0.3)
         self.speed = 0
         self.moved = 0
         self.coal = 0
@@ -264,8 +296,10 @@ class Train(object):
             #We can drive the engine!
             rate = self.steam_flow * self.pressure_usage * elapsed
             rate = min(rate, self.pressure)
+            if rate > 0:
+                self.adjust_pressure(-rate)
             self.speed += rate * self.pressure_to_speed
-            self.adjust_pressure(-rate)
+
 
         if self.braking:
             friction = self.friction + (self.braking**2)*2
@@ -287,6 +321,7 @@ class Train(object):
         self.pressure_gauge.Update(self.pressure, elapsed)
         self.speedo.Update(self.speed/self.max_speed, elapsed)
         self.damage(elapsed)
+        self.clouds = [cloud for cloud in self.clouds if cloud.Update(self.moved, elapsed)]
         #self.regulator.Update(0)
 
     def damage(self, elapsed):
@@ -329,7 +364,21 @@ class Train(object):
         self.coal -= amount
         self.adjust_pressure(amount*self.coal_to_pressure*scale_factor)
 
+    def add_steam(self, num):
+        print 'steam',num
+        for i in xrange(num):
+            new_cloud = Cloud(self.spout_pos, 3000, self.moved)
+            self.clouds.insert(0, new_cloud)
+        for cloud in self.clouds[self.max_clouds:]:
+            cloud.Destroy()
+        self.clouds = self.clouds[:self.max_clouds]
+
     def adjust_pressure(self, amount):
+        if amount < 0:
+            print 'steam poisson', -amount*1000
+            self.add_steam(numpy.random.poisson(-amount*2000*self.steam_flow*math.sqrt(self.speed)))
+            #print 'use steam %8.4f' % amount,p
+
         self.pressure += amount
         if self.pressure > self.max_pressure:
             self.pressure = self.max_pressure

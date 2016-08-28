@@ -517,7 +517,6 @@ class Train(object):
                 if self.parent.tutorial == self.parent.tutorial_brake:
                     self.parent.tutorial()
             if level_left < 40 and self.speed < 0.01:
-                self.parent.end_tutorial()
                 self.parent.mode.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time)
 
         self.moved += self.speed
@@ -788,7 +787,8 @@ class GameView(ui.RootElement):
         self.box.Enable()
         self.text.Enable()
         self.train.Enable()
-        self.tutorial_text.Enable()
+        if self.tutorial:
+            self.tutorial_text.Enable()
 
     def Disable(self):
         self.box.Disable()

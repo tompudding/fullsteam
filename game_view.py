@@ -21,19 +21,25 @@ class Wheel(object):
                        (-self.radius, self.radius),
                        (self.radius, self.radius),
                        (self.radius, -self.radius))
+        self.vertices = [0,0,0,0]
         self.set_vertices()
         self.circumference = math.pi*2*self.radius
 
     def set_vertices(self):
-        vertices = [0,0,0,0]
-
         pos = globals.rotation_offset + (self.pos - globals.rotation_offset).Rotate(self.train.parent.incline)
         for i,coord in enumerate(self.coords):
             p = coord[0] + coord[1]*1j
             distance,angle = cmath.polar(p)
             c = cmath.rect(distance,angle + self.angle + self.train.parent.incline)
-            vertices[i] = pos + Point(c.real, c.imag)
-        self.quad.SetAllVertices(vertices, 0.3)
+            self.vertices[i] = pos + Point(c.real, c.imag)
+        self.quad.SetAllVertices(self.vertices, 0.3)
+
+    def get_point(self, r):
+        pos = globals.rotation_offset + (self.pos - globals.rotation_offset).Rotate(self.train.parent.incline)
+        p = self.coords[0][0] + self.coords[0][1]*1j
+        distance,angle = cmath.polar(p)
+        c = cmath.rect(distance*r,angle + (self.angle-self.initial_angle) + self.train.parent.incline)
+        return pos + Point(c.real, c.imag)
 
     def Update(self, moved):
         self.angle = self.initial_angle + (moved/self.radius)
@@ -409,6 +415,9 @@ class Train(object):
         self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
         self.flag_quad = drawing.Quad(globals.quad_buffer, tc=globals.atlas.TextureSpriteCoords('flag.png'))
         self.flag_size = globals.atlas.SubimageSprite('flag.png').size
+        self.bars = [drawing.Quad(globals.quad_buffer, tc=globals.atlas.TextureSpriteCoords('wheel_bar.png')),
+                     drawing.Quad(globals.quad_buffer, tc=globals.atlas.TextureSpriteCoords('mid_bar.png')),
+                     drawing.Quad(globals.quad_buffer, tc=globals.atlas.TextureSpriteCoords('piston_bar.png'))]
         self.pressure_gauge = PressureGauge(self)
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
@@ -470,6 +479,14 @@ class Train(object):
     def set_dir(self, direction):
         self.direction = direction
 
+    def draw_bars(self, elapsed):
+        #Do the wheel bar first
+        a = self.wheels[0].get_point(0.6)
+        b = self.wheels[1].get_point(0.6)
+        bl = a - Point(2,2)
+        tr = b + Point(2,2)
+        self.bars[0].SetVertices(bl,tr,0.7)
+
     def Update(self, elapsed):
         #if self.move_direction:
         #    self.speed += self.move_direction*elapsed*10
@@ -528,6 +545,8 @@ class Train(object):
         for wheel in self.wheels:
             wheel.Update(self.moved)
 
+        self.draw_bars(elapsed)
+
         self.pressure_gauge.Update(self.pressure, elapsed)
         self.speedo.Update(self.speed/self.max_speed, elapsed)
         self.damage(elapsed)
@@ -572,7 +591,8 @@ class Train(object):
         self.parent.shake = min(total, 10)
         self.health -= total*elapsed
         if self.health <= 0:
-            self.parent.mode.level_fail()
+            self.parent.shake = 0
+            self.parent.mode.level_fail(globals.time - self.parent.start_time)
 
     def set_brake(self, amount):
         self.braking = amount

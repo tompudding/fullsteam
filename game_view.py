@@ -40,7 +40,7 @@ class PressureGauge(object):
     range = math.pi*2*0.77
     start = math.pi/4
     name = 'pressure.png'
-    start_pos = Point(0.05,0.72)
+    start_pos = Point(0.02,0.72)
     wobble = 0.2
     def __init__(self, train):
         self.train = train
@@ -85,13 +85,13 @@ class PressureGauge(object):
 
 class Speedo(PressureGauge):
     name = 'speed.png'
-    start_pos = Point(0.2,0.72)
+    start_pos = Point(0.13,0.72)
     wobble = 0.2
 
 class Regulator(object):
     name = 'regulator.png'
     knob_name = 'regulator_knob.png'
-    start_pos = Point(0.35,0.72)
+    start_pos = Point(0.25,0.74)
     start_angle = 0.45
     end_angle   = -0.27
     def __init__(self, train):
@@ -158,23 +158,20 @@ class Regulator(object):
         self.Update(a)
 
 class Brake(object):
-    name = 'brake_text.png'
     knob_name = 'brake_handle.png'
-    start_pos = Point(0.5,0.72)
+    start_pos = Point(0.32,0.72)
     start_angle = 0.6
     end_angle   = -0.27
     def __init__(self, train):
         self.train = train
-        self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
-        self.size = globals.atlas.SubimageSprite(self.name).size
+        self.size = Point(64,48)
         self.knob_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.knob_name))
         self.knob_coords = ((-30,-29),(-30,19),(34,19),(34,-29))
         self.knob_settings = (0.45,0.13,-0.25)
         bl = self.start_pos*globals.screen
-        tr = bl + self.size
+        #tr = bl + self.size
         self.knob_pos = bl + Point(30,29)
         self.pos = bl
-        self.quad.SetVertices(bl,tr,5.6)
         self.level = 0
         self.Update(self.start_angle)
 
@@ -508,11 +505,12 @@ class GameView(ui.RootElement):
         self.move_direction = 0
         self.shake = 0
         self.text = ui.TextBox(parent = globals.screen_root,
-                               bl     = Point(0,0)         ,
-                               tr     = Point(0.5,0.5)         ,
-                               text   = 'I am the very model of a modern major general' ,
+                               bl     = Point(0,0.68)         ,
+                               tr     = Point(1,0.78)         ,
+                               text   = 'Pressure  Speed   Regulator  Brake' ,
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
-                               scale  = 4)
+                               colour = drawing.constants.colours.black,
+                               scale  = 2)
         #pygame.mixer.music.load('music.ogg')
         #self.music_playing = False
         super(GameView,self).__init__(Point(0,0),globals.screen)

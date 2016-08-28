@@ -266,7 +266,6 @@ class Reverser(Regulator):
         diff = pos - (self.knob_pos - Point(1.5,1.2))
         p = diff.x + diff.y*1j
         r,a = cmath.polar(p)
-        print diff,r,a
         if r > 15 and r < 30 and a > -0.45 and a < 0.7:
             return True, self
         return False, False
@@ -279,7 +278,6 @@ class Reverser(Regulator):
             a = self.end_angle
         if a > 0.6:
             a = 0.6
-        print a
         self.Update(a)
 
 
@@ -416,7 +414,7 @@ class Train(object):
         self.direction = 1
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
-        self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.465,0.770),Point(0.565,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
+        self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.475,0.770),Point(0.575,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
         self.add_coal_text.Disable()
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
@@ -597,7 +595,6 @@ class Train(object):
 
     def set_steam(self, value):
         self.steam_flow = value
-        print 'steam flow now',self.steam_flow
 
     def mouse_button_down(self, pos, button):
         if button != 1:
@@ -659,7 +656,6 @@ class LoopingQuad(object):
         self.set_coords()
 
 class GameView(ui.RootElement):
-    chunk_width = 3000
     def __init__(self):
         self.start_time_hours = 4
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
@@ -672,11 +668,16 @@ class GameView(ui.RootElement):
         self.last = None
         self.move_direction = 0
         self.shake = 0
-        self.level_heights = [0,0,400,-600,0,0]
+        self.box = ui.Box(parent = globals.screen_root,
+                          pos = Point(0.005,0.74),
+                          tr = Point(0.995,0.99),
+                          colour = (1,1,1,0.5),
+                          z=5
+                          )
         self.text = ui.TextBox(parent = globals.screen_root,
                                bl     = Point(-0.045,0.71)         ,
-                               tr     = Point(1,0.81)         ,
-                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health   Reverser  Time' ,
+                               tr     = Point(1.2,0.81)         ,
+                               text   = 'Pressure  Speed   Regulator  Brake       Coal     Health   Reverser  Time  Distance' ,
                                textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
                                colour = drawing.constants.colours.black,
                                scale  = 2)
@@ -694,10 +695,12 @@ class GameView(ui.RootElement):
         #self.music_playing = True
 
     def Enable(self):
+        self.box.Enable()
         self.text.Enable()
         self.train.Enable()
 
     def Disable(self):
+        self.box.Disable()
         self.text.Disable()
         self.train.Disable()
 

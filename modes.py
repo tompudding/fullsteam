@@ -67,7 +67,7 @@ class Titles(Mode):
     def Startup(self,t):
         return TitleStages.STARTED
 
-chunk_width = 3000
+chunk_width = 300
 
 def smoothstep(last,target,x):
     diff = (target - last)
@@ -109,6 +109,9 @@ class LevelOne(Mode):
                                      alignment = drawing.texture.TextAlignments.CENTRE,
                                      )
         self.ok_button = ui.TextBoxButton(self.frame, 'OK',Point(0.45,0.1),Point(0.55,0.17),size=2,callback=self.click_ok,colour=(0.0,0.0,0.0,1.0))
+
+    def level_length(self):
+        return chunk_width * (len(self.level_heights)-1)
 
     def click_ok(self, pos):
         self.frame.Disable()

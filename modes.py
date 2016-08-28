@@ -126,6 +126,10 @@ class MainMenu(Mode):
         self.frame = ui.UIElement(globals.screen_root,
                                   globals.screen_root.GetRelative(backdrop_bl),
                                   globals.screen_root.GetRelative(backdrop_tr))
+        self.skull = drawing.Quad(globals.screen_texture_buffer,tc=globals.atlas.TextureSpriteCoords('skull.png'))
+        self.skull.SetVertices(Point(128,58),Point(128+64,58+64),10.1)
+        self.skull.Disable()
+
         #tr = bl + self.parent.GetRelative(globals.screen)
         self.blurb_text = ui.TextBox(parent = self.frame,
                                      bl     = Point(0.0,0.72) ,
@@ -174,6 +178,7 @@ class MainMenu(Mode):
         self.show_main_menu()
 
     def show_main_menu(self):
+        self.skull.Disable()
         self.level_ok_button.Disable()
         self.level_back_button.Disable()
         for label in self.level_buttons:
@@ -239,6 +244,22 @@ class MainMenu(Mode):
         self.content_boxes_right[3].SetText('$ %3d.%02d' % (100 - health,0),colour=(0,0,0,1))
         self.content_boxes_right[4].SetText(' ------ ',colour=(0,0,0,1))
         self.content_boxes_right[5].SetText('$ %d.%02d'% (total,0),colour=(0,0,0,1))
+        self.level_back_button.Enable()
+
+    def level_fail(self, time_taken):
+        self.playing = False
+        self.backdrop.Enable()
+        self.parent.Disable()
+        for label in self.level_buttons:
+            label.Disable()
+        self.underline.Enable()
+        self.blurb_text.Enable()
+        self.blurb_text.SetText('Your train was destroyed!',colour=(0,0,0,1))
+        self.skull.Enable()
+        print time_taken
+
+        for box in itertools.chain(self.content_boxes,self.content_boxes_right):
+            box.Disable()
         self.level_back_button.Enable()
 
 

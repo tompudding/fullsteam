@@ -567,6 +567,8 @@ class Train(object):
         total = over_speed + over_pressure + braking
         self.parent.shake = min(total, 10)
         self.health -= total*elapsed
+        if self.health <= 0:
+            self.parent.mode.level_fail()
 
     def set_brake(self, amount):
         self.braking = amount
@@ -857,7 +859,7 @@ class GameView(ui.RootElement):
         self.mode.KeyDown(key)
 
     def KeyUp(self,key):
-        self.mode.level_complete(self.train.coal_used, self.train.health, globals.time - self.start_time)
+        self.mode.level_fail(globals.time - self.start_time)
         if key == pygame.K_DELETE:
             if self.music_playing:
                 self.music_playing = False

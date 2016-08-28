@@ -372,20 +372,38 @@ class LoopingQuad(object):
         self.sf = sf
         self.quads = [drawing.Quad(globals.quad_buffer) for i in xrange(2)]
         self.size = globals.atlas.SubimageSprite(self.name).size
+        self.centre = self.pos + (self.size*0.5)
         self.tc = globals.atlas.TextureSpriteCoords(self.name)
         self.moved = 10
+        self.angle = 0
         self.set_coords()
 
     def set_coords(self):
         #The first quad is the amount moved
-        self.quads[0].SetVertices(self.pos, Point(self.pos.x + self.moved, self.pos.y + self.size.y), self.z)
+        bl = self.pos
+        tr = Point(self.pos.x + self.moved, self.pos.y + self.size.y)
+        vertices = [0,0,0,0]
+        for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                    Point(bl.x, tr.y),
+                                    Point(tr.x, tr.y),
+                                    Point(tr.x, bl.y))):
+            vertices[i] = coord.Rotate(self.angle)
+        self.quads[0].SetAllVertices(vertices,self.z)
         # #The texture coordinate is
         moved_partial = 1-float(self.moved)/self.size.x
         coords = [[moved_partial,0],[moved_partial,1],[1,1],[1,0]]
         globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
         self.quads[0].SetTextureCoordinates(coords)
         #The second goes from moved to the end
-        self.quads[1].SetVertices(self.pos + Point(self.moved,0), Point(self.pos.x + self.size.x,self.pos.y + self.size.y), self.z)
+        bl = self.pos + Point(self.moved,0)
+        tr = Point(self.pos.x + self.size.x,self.pos.y + self.size.y)
+        for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                    Point(bl.x, tr.y),
+                                    Point(tr.x, tr.y),
+                                    Point(tr.x, bl.y))):
+            vertices[i] = coord.Rotate(self.angle)
+        #self.quads[1].SetVertices(self.pos + Point(self.moved,0), Point(self.pos.x + self.size.x,self.pos.y + self.size.y), self.z)
+        self.quads[1].SetAllVertices(vertices,self.z)
         coords = [[0,0],[0,1],[moved_partial,1],[moved_partial,0]]
         tc = globals.atlas.TransformCoords(os.path.join(globals.dirs.sprites,self.name), coords)
         self.quads[1].SetTextureCoordinates(coords)
@@ -402,6 +420,8 @@ class GameView(ui.RootElement):
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
         self.hills = LoopingQuad(Point(0,0), 0.05, 'hills.png', 0.6)
         self.tracks = LoopingQuad(Point(0,0), 0.1, 'tracks.png', 1.0)
+        #self.hills.angle = -0.1
+        #self.sky.angle = -0.1
         self.train = Train(self)
         self.last = None
         self.move_direction = 0

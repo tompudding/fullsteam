@@ -7,7 +7,8 @@ import modes
 import random
 
 class Wheel(object):
-    def __init__(self, x, y, angle):
+    def __init__(self, train, x, y, angle):
+        self.train = train
         self.x = x
         self.y = y
         self.angle = angle
@@ -25,11 +26,13 @@ class Wheel(object):
 
     def set_vertices(self):
         vertices = [0,0,0,0]
+
+        pos = globals.rotation_offset + (self.pos - globals.rotation_offset).Rotate(self.train.parent.incline)
         for i,coord in enumerate(self.coords):
             p = coord[0] + coord[1]*1j
             distance,angle = cmath.polar(p)
-            c = cmath.rect(distance,angle + self.angle)
-            vertices[i] = self.pos + Point(c.real, c.imag)
+            c = cmath.rect(distance,angle + self.angle + self.train.parent.incline)
+            vertices[i] = pos + Point(c.real, c.imag)
         self.quad.SetAllVertices(vertices, 0.3)
 
     def Update(self, moved):
@@ -218,7 +221,7 @@ class Brake(object):
             c = cmath.rect(distance,old_angle + new_angle)
             vertices[i] = self.knob_pos + Point(c.real, c.imag)
 
-        self.knob_quad.SetAllVertices(vertices, 0.5)
+        self.knob_quad.SetAllVertices(vertices, 5.5)
 
     def __contains__(self, item):
         return (item.x >= self.pos.x) and (item.x < self.pos.x + self.size.x) and (item.y >= self.pos.y) and (item.y < self.pos.y + self.size.y)
@@ -307,7 +310,7 @@ class Train(object):
         self.coal_dial   = CoalDial(self)
         self.health = 100
         self.health_dial = HealthDial(self, self.health)
-        self.wheels = [Wheel(20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
+        self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.51,0.770),Point(0.61,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
@@ -324,15 +327,14 @@ class Train(object):
     def set_vertices(self):
         if self.parent.incline == 0:
             return self.quad.SetVertices(self.pos,self.pos + self.size,0.2)
-        offset = Point(globals.screen.x/2,0)
-        bl = self.pos - offset
+        bl = self.pos - globals.rotation_offset
         tr = bl + self.size
         vertices = [0,0,0,0]
         for (i,coord) in enumerate((Point(bl.x, bl.y),
                                     Point(bl.x, tr.y),
                                     Point(tr.x, tr.y),
                                     Point(tr.x, bl.y))):
-            vertices[i] = offset + coord.Rotate(self.parent.incline)
+            vertices[i] = globals.rotation_offset + coord.Rotate(self.parent.incline)
         self.quad.SetAllVertices(vertices,0.2)
 
 
@@ -444,8 +446,7 @@ class Train(object):
         for i in xrange(num):
             pos = pos if pos is not None else self.spout_pos
             if self.parent.incline != 0:
-                offset = Point(globals.screen.x/2,0)
-                new_pos = offset + (pos-offset).Rotate(self.parent.incline)
+                new_pos = globals.rotation_offset + (pos-globals.rotation_offset).Rotate(self.parent.incline)
             else:
                 new_pos = pos
             new_cloud = Cloud(new_pos, 3000, self.moved, steam=steam)
@@ -518,15 +519,14 @@ class LoopingQuad(object):
         for (i,quad) in enumerate(self.quads):
             view_offset = Point((i-1)*self.size.x + self.moved,0)
 
-            offset = Point(self.size.x/2,0)
-            bl = self.pos - offset + view_offset
+            bl = self.pos - globals.rotation_offset + view_offset
             tr = bl + self.size
             vertices = [0,0,0,0]
             for (i,coord) in enumerate((Point(bl.x, bl.y),
                                         Point(bl.x, tr.y),
                                         Point(tr.x, tr.y),
                                         Point(tr.x, bl.y))):
-                vertices[i] = offset + coord.Rotate(self.angle)
+                vertices[i] = globals.rotation_offset + coord.Rotate(self.angle)
             quad.SetAllVertices(vertices,self.z)
 
     def Update(self, moved):

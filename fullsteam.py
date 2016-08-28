@@ -13,6 +13,7 @@ def Init():
     globals.tile_scale            = Point(1,1)
     globals.scale                 = Point(4,4)
     globals.screen                = Point(w,h)/globals.scale
+    globals.rotation_offset       = Point(globals.screen.x/2,0)
     globals.screen_root           = ui.UIRoot(Point(0,0),globals.screen)
     globals.quad_buffer           = drawing.QuadBuffer(131072)
     globals.screen_texture_buffer = drawing.QuadBuffer(131072)

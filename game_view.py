@@ -541,10 +541,7 @@ class GameView(ui.RootElement):
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
         self.hills = LoopingQuad(Point(0,-50), 0.05, 'hills.png', 0.6)
         self.tracks = LoopingQuad(Point(0,-84), 0.1, 'tracks.png', 1.0)
-        self.incline = -0.1
-        self.hills.angle = self.incline/2
-        self.tracks.angle = self.incline
-        #self.sky.angle = -0.1
+        self.incline = 0.3
         self.train = Train(self)
         self.last = None
         self.move_direction = 0
@@ -590,6 +587,12 @@ class GameView(ui.RootElement):
             return
         elapsed = float(t - self.last)/1000
         self.last = t
+
+        float(t)/1000
+        self.incline = math.sin(math.pi*float(t)/10000)-0.5
+        self.hills.angle = self.incline/2
+        self.tracks.angle = self.incline
+
 
         self.train.Update(elapsed)
         for backdrop in self.sky,self.tracks,self.hills:

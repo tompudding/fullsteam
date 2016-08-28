@@ -8,8 +8,9 @@ resource/sprites/brake_handle.png:tiles_atlas_0.png:960:976.0:64:48
 resource/sprites/brake_text.png:tiles_atlas_0.png:960:928.0:64:48
 resource/sprites/regulator.png:tiles_atlas_0.png:640:848.0:64:48
 resource/sprites/regulator_knob.png:tiles_atlas_0.png:704:848.0:64:48
-resource/sprites/pressure.png:tiles_atlas_0.png:768:848.0:48:48
-resource/sprites/speed.png:tiles_atlas_0.png:816:848.0:48:48
+resource/sprites/reverser.png:tiles_atlas_0.png:768:848.0:64:48
+resource/sprites/pressure.png:tiles_atlas_0.png:832:848.0:48:48
+resource/sprites/speed.png:tiles_atlas_0.png:880:848.0:48:48
 resource/sprites/wheel.png:tiles_atlas_0.png:960:900.0:28:28
 resource/sprites/dial.png:tiles_atlas_0.png:988:910.0:32:18
 resource/sprites/arrow.png:tiles_atlas_0.png:988:903.0:21:7

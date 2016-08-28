@@ -120,18 +120,22 @@ class Regulator(object):
     start_pos = Point(0.25,0.74)
     start_angle = 0.45
     end_angle   = -0.27
+    knob_settings = (0.45,0.13,-0.25)
     def __init__(self, train):
         self.train = train
-        self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
-        self.size = globals.atlas.SubimageSprite(self.name).size
+        if self.name:
+            self.quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
+            self.size = globals.atlas.SubimageSprite(self.name).size
         self.knob_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.knob_name))
+        if not self.name:
+            self.size = globals.atlas.SubimageSprite(self.knob_name).size
         self.knob_coords = ((-10,-28),(-10,20),(54,20),(54,-28))
-        self.knob_settings = (0.45,0.13,-0.25)
         bl = self.start_pos*globals.screen
         tr = bl + self.size
         self.knob_pos = bl + Point(5,28)
         self.pos = bl
-        self.quad.SetVertices(bl,tr,5.6)
+        if self.name:
+            self.quad.SetVertices(bl,tr,5.6)
         self.level = 0
         self.Update(self.start_angle)
 
@@ -182,6 +186,55 @@ class Regulator(object):
         if a > self.start_angle:
             a = self.start_angle
         self.Update(a)
+
+class Reverser(Regulator):
+    name = None
+    knob_name = 'reverser.png'
+    start_pos = Point(0.73,0.72)
+    start_angle = 0.45
+    end_angle   = -0.4
+    knob_settings = (0.45,-0.25)
+
+    def __init__(self, *args, **kwargs):
+        super(Reverser,self).__init__(*args,**kwargs)
+        self.last_setting = 0
+
+    def choose_setting(self, n):
+        if abs(self.train.speed) < 0.01:
+            self.Update(self.knob_settings[n])
+            self.last_setting = n
+            self.train.set_dir(1 if n == 0 else -1)
+        else:
+            self.Update(self.knob_settings[self.last_setting])
+
+    def snap(self):
+        #choose the nearest setting and switch to it
+        if self.current_angle < -0.1:
+            self.choose_setting(1)
+        else:
+            self.choose_setting(0)
+
+    def click(self, pos):
+        diff = pos - (self.knob_pos - Point(1.5,1.2))
+        p = diff.x + diff.y*1j
+        r,a = cmath.polar(p)
+        print diff,r,a
+        if r > 20 and r < 30 and a > -0.45 and a < 0.65:
+            return True, self
+        return False, False
+
+    def motion(self, pos):
+        diff = pos - (self.knob_pos + Point(0,4))
+        p = diff.x + diff.y*1j
+        r,a = cmath.polar(p)
+        if a < self.end_angle:
+            a = self.end_angle
+        if a > 0.6:
+            a = 0.6
+        print a
+        self.Update(a)
+
+
 
 class Brake(object):
     knob_name = 'brake_handle.png'
@@ -307,9 +360,11 @@ class Train(object):
         self.pressure_gauge = PressureGauge(self)
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
+        self.reverser  = Reverser(self)
         self.brake = Brake(self)
         self.coal_dial   = CoalDial(self)
         self.health = 100
+        self.direction = 1
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.51,0.770),Point(0.61,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
@@ -317,7 +372,7 @@ class Train(object):
         self.vent_pos = self.pos + Point(133,49)
         self.clouds = []
         self.move_direction = 0
-        self.speed = 5
+        self.speed = 0
         self.moved = 0
         self.coal = 0
         self.pressure = 0
@@ -338,6 +393,8 @@ class Train(object):
             vertices[i] = globals.rotation_offset + coord.Rotate(self.parent.incline)
         self.quad.SetAllVertices(vertices,0.2)
 
+    def set_dir(self, direction):
+        self.direction = direction
 
     def Update(self, elapsed):
         #if self.move_direction:
@@ -353,7 +410,7 @@ class Train(object):
             rate = min(rate, self.pressure)
             if rate > 0 and self.pressure > self.min_pressure:
                 self.adjust_pressure(-rate)
-                self.speed += rate * self.pressure_to_speed
+                self.speed += rate * self.pressure_to_speed * self.direction
         self.adjust_pressure(-self.pressure_loss*elapsed, loss=True)
 
 
@@ -492,6 +549,8 @@ class Train(object):
             return self.regulator.click(pos)
         elif pos in self.brake:
                 return self.brake.click(pos)
+        elif pos in self.reverser:
+            return self.reverser.click(pos)
         return False, False
 
     def mouse_button_up(self, pos, button):
@@ -585,7 +644,6 @@ class GameView(ui.RootElement):
         #self.music_playing = True
 
     def get_incline(self):
-        print self.train.moved
         chunk = int(1 + (float(self.train.moved) / self.chunk_width))
         if chunk >= len(self.level_heights):
             return 0

@@ -456,7 +456,6 @@ class TextBox(UIElement):
         self.lowest_y = 0
         row_height = (float(self.text_manager.font_height*self.scale*drawing.texture.global_scale)/self.absolute.size.y)
         #Do this without any kerning or padding for now, and see what it looks like
-        print row_height,self.viewpos,self.margin.y
         y = -self.viewpos + (1 - (row_height-self.margin.y))/2
         #y = 0
         cursor = Point(self.margin.x,y)

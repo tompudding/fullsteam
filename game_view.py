@@ -403,6 +403,8 @@ class Train(object):
         self.pos = Point(20,43)
         self.size = globals.atlas.SubimageSprite(self.name).size
         self.quad = drawing.Quad(globals.quad_buffer,tc = globals.atlas.TextureSpriteCoords(self.name))
+        self.flag_quad = drawing.Quad(globals.quad_buffer, tc=globals.atlas.TextureSpriteCoords('flag.png'))
+        self.flag_size = globals.atlas.SubimageSprite('flag.png').size
         self.pressure_gauge = PressureGauge(self)
         self.speedo = Speedo(self)
         self.regulator = Regulator(self)
@@ -415,7 +417,8 @@ class Train(object):
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.475,0.770),Point(0.575,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
-        self.add_coal_text.Disable()
+        self.distance_text = ui.TextBox(globals.screen_root,Point(0.9,0.83),Point(1.0,0.93),'????.??',scale=2,colour=(0,0,0,1.0))
+        self.Disable()
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
         self.clouds = []
@@ -442,9 +445,11 @@ class Train(object):
         self.quad.SetAllVertices(vertices,0.2)
 
     def Enable(self):
+        self.distance_text.Enable()
         self.add_coal_text.Enable()
 
     def Disable(self):
+        self.distance_text.Disable()
         self.add_coal_text.Disable()
 
     def set_dir(self, direction):
@@ -458,6 +463,12 @@ class Train(object):
         self.clock.Update(elapsed)
         self.set_vertices()
         self.burn(elapsed)
+        level_left = self.parent.mode.level_length() - self.moved
+        flag_bl = Point(120,40) - Point(level_left,0)
+        flag_tr = flag_bl + self.flag_size
+        self.flag_quad.SetVertices(flag_bl, flag_tr, 0.1)
+
+        self.distance_text.SetText('%7.2f' % (level_left), colour = (0,0,0,1))
 
         if self.steam_flow > 0:
             #We can drive the engine!

@@ -67,7 +67,7 @@ class Titles(Mode):
     def Startup(self,t):
         return TitleStages.STARTED
 
-chunk_width = 300
+chunk_width = 3000
 
 def smoothstep(last,target,x):
     diff = (target - last)

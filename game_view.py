@@ -297,6 +297,7 @@ class Train(object):
     min_pressure = 0.05
     max_clouds = 300
     pressure_loss = 0.005
+    gravity = 4
     name = 'train.png'
     def __init__(self,parent):
         self.parent = parent
@@ -316,7 +317,7 @@ class Train(object):
         self.vent_pos = self.pos + Point(133,49)
         self.clouds = []
         self.move_direction = 0
-        self.speed = 0
+        self.speed = 5
         self.moved = 0
         self.coal = 0
         self.pressure = 0
@@ -361,11 +362,18 @@ class Train(object):
         else:
             friction = self.friction
 
+        #gravity term
+        if self.parent.incline != 0:
+            d = cmath.rect(1, self.parent.incline)
+            self.speed += d.imag*self.gravity*elapsed
+
         self.speed -= friction*elapsed*self.speed
 
         if self.speed > self.max_speed:
             self.speed = self.max_speed
-        if self.speed < 0.03 and self.braking:
+        if self.speed < -self.max_speed:
+            self.speed = -self.max_speed
+        if abs(self.speed) < 0.03 and self.braking:
             self.speed = 0
 
         self.moved += self.speed
@@ -464,7 +472,7 @@ class Train(object):
 
     def adjust_pressure(self, amount, loss=False):
         if amount < 0 and not loss:
-            self.add_steam(numpy.random.poisson(-amount*2000*self.steam_flow*math.sqrt(self.speed)))
+            self.add_steam(numpy.random.poisson(-amount*2000*self.steam_flow*math.sqrt(abs(self.speed))))
             #print 'use steam %8.4f' % amount,p
 
         self.pressure += amount
@@ -538,7 +546,9 @@ def smoothstep(last,target,x):
     diff = (target - last)
     height = last + diff*x*x*(3-2*x)
     incline = (diff*6*x*(1-x))/3000
-    return -incline
+    #That incline is a ratio, we want an angle
+    r,a = cmath.polar( 1 + incline*1j)
+    return -a
 
 class GameView(ui.RootElement):
     chunk_width = 3000
@@ -553,7 +563,7 @@ class GameView(ui.RootElement):
         self.last = None
         self.move_direction = 0
         self.shake = 0
-        self.level_heights = [0,400,-600,0,0]
+        self.level_heights = [0,0,400,-600,0,0]
         self.text = ui.TextBox(parent = globals.screen_root,
                                bl     = Point(0,0.68)         ,
                                tr     = Point(1,0.78)         ,

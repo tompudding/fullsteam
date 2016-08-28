@@ -424,7 +424,7 @@ class Train(object):
 
     def Reset(self):
         self.health = 100
-        self.num_coal_used = 0
+        self.coal_used = 0
         self.coal = 0
         self.moved = 0
         self.speed = 0
@@ -477,6 +477,9 @@ class Train(object):
         flag_bl = Point(120,40) - Point(level_left,0)
         flag_tr = flag_bl + self.flag_size
         self.flag_quad.SetVertices(flag_bl, flag_tr, 0.1)
+        if level_left < 40 and self.speed < 0.01:
+            self.move.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time)
+
 
         self.distance_text.SetText('%7.2f' % (level_left), colour = (0,0,0,1))
 
@@ -524,6 +527,8 @@ class Train(object):
 
     def add_coal_button(self, pos):
         self.add_coal(1)
+        self.coal_used += 1
+
 
     def damage(self, elapsed):
         over_speed = self.speed - self.safe_speed
@@ -747,11 +752,13 @@ class GameView(ui.RootElement):
         self.box.Enable()
         self.text.Enable()
         self.train.Enable()
+        self.tutorial_text.Enable()
 
     def Disable(self):
         self.box.Disable()
         self.text.Disable()
         self.train.Disable()
+        self.tutorial_text.Disable()
 
     def Draw(self):
         drawing.ResetState()
@@ -814,6 +821,7 @@ class GameView(ui.RootElement):
         self.mode.KeyDown(key)
 
     def KeyUp(self,key):
+        self.mode.level_complete(self.train.coal_used, self.train.health, globals.time - self.start_time)
         if key == pygame.K_DELETE:
             if self.music_playing:
                 self.music_playing = False

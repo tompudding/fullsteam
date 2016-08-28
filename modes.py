@@ -1,7 +1,7 @@
 from OpenGL.GL import *
 import random,numpy,cmath,math,pygame
 
-import ui,globals,drawing,os,copy
+import ui,globals,drawing,os,copy,itertools
 from globals.types import Point
 import sys
 
@@ -77,16 +77,23 @@ class MainMenu(Mode):
     blurb  = 'FULL STEAM'
     blurbs = ["Always wanted to be a train driver",
               "Job One - Across the plains",
-              "Job Two - Down the mountain",
+              "Job Two - Jack and Jill went up the hill",
+              "Job Three - Down the mountain",
               "Job Three - To Eagle's Perch"]
     level_names = ['Tutorial',
                    'Job One',
                    'Job Two',
-                   'Job Three']
-    level_heights = [[0,0],        #Totally flat and short
-                     [0,0,0,0,0,0], #Normal
-                     [2000,1500,1400,1200,1000,800,400,200,0], #Downhill
-                     [1000,900,800,600,400,200,0,100,200,400,600,800,1000,1200,1400,1600,1800,1000,500,0]] #Reach the perch]
+                   'Job Three',
+                   'Job Four',
+]
+    level_heights = [[0,0,0],        #Totally flat and short
+                     [0,0,0,0,0,0,0,0], #Normal
+                     [0,200,400,100,-100,-300,0,400,600,300,100,0,0], # hilly
+                     [2000,1500,1400,1200,1000,800,400,200,0,0], #Downhill
+                     [1000,900,800,600,400,200,0,100,200,400,600,800,1000,1200,1400,1600,1800,1000,500,0,0]] #Reach the perch]
+    level_goals = [-2,-2,-2,-2,-5]
+    coal_prices = [0,10,40,0,1]
+    times = [10,10,20,40,80]
     incline_transition = 0.4
 
     def __init__(self,parent):
@@ -138,13 +145,32 @@ class MainMenu(Mode):
                                      scale  = 3,
                                      alignment = drawing.texture.TextAlignments.CENTRE,
                                      )
+        self.content_boxes = [ui.TextBox(parent = self.frame,
+                                         bl = Point(0.2,0.65 - i*0.05),
+                                         tr = Point(0.9,0.72 - i*0.05),
+                                         text = ' ',
+                                         textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
+                                         colour = (0,0,0,1),
+                                         scale  = 2,
+                                         alignment = drawing.texture.TextAlignments.LEFT) for i in xrange(6)]
+        self.content_boxes_right = [ui.TextBox(parent = self.frame,
+                                               bl = Point(0.6,0.65 - i*0.05),
+                                               tr = Point(0.9,0.72 - i*0.05),
+                                               text = ' ',
+                                               textType = drawing.texture.TextTypes.SCREEN_RELATIVE,
+                                               colour = (0,0,0,1),
+                                               scale  = 2,
+                                               alignment = drawing.texture.TextAlignments.LEFT) for i in xrange(6)]
+        for box in itertools.chain(self.content_boxes,self.content_boxes_right):
+            box.Disable()
+
         self.level_ok_button = ui.TextBoxButton(self.frame, 'OK',Point(0.4,0.15),Point(0.5,0.22),size=2,callback=self.click_ok,colour=(0.0,0.0,0.0,1.0))
 
         self.level_back_button = ui.TextBoxButton(self.frame, 'Back',Point(0.5,0.15),Point(0.6,0.22),size=2,callback=self.click_back,colour=(0.0,0.0,0.0,1.0))
         self.quit_button = ui.TextBoxButton(self.frame, 'QUIT',Point(0.45,0.1),Point(0.55,0.17),size=2,callback=self.click_quit,colour=(0.0,0.0,0.0,1.0))
         self.back_to_game = ui.TextBoxButton(self.frame, 'Cancel',Point(0.6,0.1),Point(0.7,0.17),size=2,callback=self.click_cancel,colour=(0.0,0.0,0.0,1.0))
-        self.level_callbacks = [self.click_tutorial,self.click_level_one,self.click_level_two,self.click_level_three]
-        self.level_buttons = [ui.TextBoxButton(self.frame, self.level_names[i],Point(0.4,0.6-0.075*i),Point(0.6,0.66-0.075*i),size=2,callback=self.level_callbacks[i],colour=(0.0,0.0,0.0,1.0)) for i in xrange(4)]
+        self.level_callbacks = [self.click_tutorial,self.click_level_one,self.click_level_two,self.click_level_three,self.click_level_four]
+        self.level_buttons = [ui.TextBoxButton(self.frame, self.level_names[i],Point(0.4,0.6-0.075*i),Point(0.6,0.66-0.075*i),size=2,callback=self.level_callbacks[i],colour=(0.0,0.0,0.0,1.0)) for i in xrange(5)]
         self.show_main_menu()
 
     def show_main_menu(self):
@@ -156,6 +182,8 @@ class MainMenu(Mode):
         self.quit_button.Enable()
         self.underline.Enable()
         self.back_to_game.Disable()
+        for box in itertools.chain(self.content_boxes,self.content_boxes_right):
+            box.Disable()
 
     def click_tutorial(self,pos):
         self.show_level_intro(0)
@@ -168,6 +196,51 @@ class MainMenu(Mode):
 
     def click_level_three(self, pos):
         self.show_level_intro(3)
+
+    def click_level_four(self, pos):
+        self.show_level_intro(4)
+
+    def get_time_bonus(self, time_taken):
+        target_time = self.times[self.current_level]
+        early = time_taken*1000 - target_time
+        bonus = (float(early)/1000)**2
+        if bonus > 5000:
+            bonus = 5000
+        return bonus
+
+
+    def level_complete(self, coal_used, health, time_taken):
+        self.playing = False
+        self.backdrop.Enable()
+        self.parent.Disable()
+        for label in self.level_buttons:
+            label.Disable()
+        self.underline.Enable()
+        self.blurb_text.Enable()
+        print time_taken
+        time_bonus = self.get_time_bonus(time_taken)
+        for box in itertools.chain(self.content_boxes,self.content_boxes_right):
+            box.Enable()
+        self.blurb_text.SetText('Level Complete',colour=(0,0,0,1))
+        self.content_boxes[0].SetText('Payment',colour=(0,0,0,1))
+        self.content_boxes[1].SetText('Coal (%d * $%d)' % (coal_used, self.coal_prices[self.current_level]),colour=(0,0,0,1))
+        self.content_boxes[2].SetText('Time %s' % ('bonus' if time_bonus > 0 else 'penalty'),colour=(0,0,0,1))
+        self.content_boxes[3].SetText('Repairs',colour=(0,0,0,1))
+        self.content_boxes[4].SetText(' ',colour=(0,0,0,1))
+        self.content_boxes[5].SetText('Total',colour=(0,0,0,1))
+
+        payment = 100
+        coal = coal_used*self.coal_prices[self.current_level]
+        total = payment + coal + 100 - health + time_bonus
+
+        self.content_boxes_right[0].SetText('$ %3d.%02d' % (payment,0),colour=(0,0,0,1))
+        self.content_boxes_right[1].SetText('$ %3d.%02d' % (coal,0), colour=(0,0,0,1))
+        self.content_boxes_right[2].SetText('$ %3d.%02d' % (time_bonus,0),colour=(0,0,0,1))
+        self.content_boxes_right[3].SetText('$ %3d.%02d' % (100 - health,0),colour=(0,0,0,1))
+        self.content_boxes_right[4].SetText(' ------ ',colour=(0,0,0,1))
+        self.content_boxes_right[5].SetText('$ %d.%02d'% (total,0),colour=(0,0,0,1))
+        self.level_back_button.Enable()
+
 
     def click_cancel(self, pos):
         self.frame.Disable()
@@ -186,9 +259,11 @@ class MainMenu(Mode):
         self.level_ok_button.Enable()
         self.quit_button.Disable()
         self.level_back_button.Enable()
+        for box in itertools.chain(self.content_boxes,self.content_boxes_right):
+            box.Disable()
 
     def level_length(self):
-        return chunk_width * (len(self.level_heights[self.current_level])-1)
+        return chunk_width * (len(self.level_heights[self.current_level]) + self.level_goals[self.current_level])
 
     def click_ok(self, pos):
         self.frame.Disable()

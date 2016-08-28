@@ -424,6 +424,7 @@ class Train(object):
 
     def Reset(self):
         self.health = 100
+        self.num_coal_used = 0
         self.coal = 0
         self.moved = 0
         self.speed = 0
@@ -537,7 +538,7 @@ class Train(object):
 
         if self.pressure > 0:
             if self.steam_flow < 0.1:
-                brake_sf = 2
+                brake_sf = 10
             elif self.steam_flow < 0.8:
                 brake_sf = 20
             else:

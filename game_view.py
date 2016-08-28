@@ -133,7 +133,7 @@ class Clock(object):
             quad.SetAllVertices(vertices, 5.5+i+1)
 
     def Update(self, elapsed):
-        time = self.train.parent.start_time_hours + self.seconds_to_hours * float(globals.time)/1000
+        time = self.train.parent.start_time_hours + self.seconds_to_hours * float(globals.time - self.train.parent.start_time)/1000
         minutes = (time % 1.0) * 60
         hours = time % 12
 
@@ -412,24 +412,33 @@ class Train(object):
         self.brake = Brake(self)
         self.coal_dial   = CoalDial(self)
         self.clock = Clock(self)
-        self.health = 100
-        self.direction = 1
+        self.clouds = []
+        self.distance_text = ui.TextBox(globals.screen_root,Point(0.9,0.83),Point(1.0,0.93),'????.??',scale=2,colour=(0,0,0,1.0))
+        self.Reset()
         self.health_dial = HealthDial(self, self.health)
         self.wheels = [Wheel(self,20+x,y,r) for (x,y,r) in ((99,43,0),(141,43,math.pi))]
         self.add_coal_text = ui.TextBoxButton(globals.screen_root, 'Add',Point(0.475,0.770),Point(0.575,0.83),size=2,callback=self.add_coal_button,colour=(0.0,0.0,0.0,1.0))
-        self.distance_text = ui.TextBox(globals.screen_root,Point(0.9,0.83),Point(1.0,0.93),'????.??',scale=2,colour=(0,0,0,1.0))
         self.Disable()
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
-        self.clouds = []
-        self.move_direction = 0
-        self.speed = 0
-        self.moved = 0
+
+    def Reset(self):
+        self.health = 100
         self.coal = 0
-        self.pressure = 0
+        self.moved = 0
+        self.speed = 0
+        self.move_direction = 0
         self.steam_flow = 0
         self.braking = 0
         self.set_vertices()
+        for cloud in self.clouds:
+            cloud.Destroy()
+        self.clouds = []
+        self.distance_text.SetText('????.??')
+        self.direction = 1
+        self.pressure = 0
+        self.reverser.choose_setting(0)
+        self.regulator.choose_setting(0)
 
     def set_vertices(self):
         if self.parent.incline == 0:
@@ -668,17 +677,16 @@ class LoopingQuad(object):
 
 class GameView(ui.RootElement):
     def __init__(self):
-        self.start_time_hours = 4
+        self.start_time_hours = 0
         self.atlas = globals.atlas = drawing.texture.TextureAtlas('tiles_atlas_0.png','tiles_atlas.txt')
         self.game_over = False
         self.sky = LoopingQuad(Point(0,0), 0, 'sky.png', 0.1)
         self.hills = LoopingQuad(Point(0,-50), 0.05, 'hills.png', 0.6)
         self.tracks = LoopingQuad(Point(0,-84), 0.1, 'tracks.png', 1.0)
+        self.start_time = globals.time
         self.incline = 0
         self.train = Train(self)
         self.last = None
-        self.move_direction = 0
-        self.shake = 0
         self.box = ui.Box(parent = globals.screen_root,
                           pos = Point(0.005,0.74),
                           tr = Point(0.995,0.99),
@@ -699,6 +707,13 @@ class GameView(ui.RootElement):
         #skip titles for development of the main game
         self.mode = modes.MainMenu(self)
         self.StartMusic()
+        self.Reset()
+
+    def Reset(self):
+        self.train.Reset()
+        self.incline = 0
+        self.shake = 0
+        self.start_time = globals.time
 
     def StartMusic(self):
         pass

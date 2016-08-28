@@ -180,6 +180,7 @@ class MainMenu(Mode):
         self.backdrop.Disable()
         self.playing = True
         self.parent.Enable()
+        self.parent.Reset()
 
     def click_back(self, pos):
         self.show_main_menu()
@@ -200,7 +201,11 @@ class MainMenu(Mode):
         pass
 
     def KeyUp(self,key):
-        pass
+        if self.playing and key == pygame.K_ESCAPE:
+            self.playing = False
+            self.frame.Enable()
+            self.backdrop.Enable()
+            self.parent.Disable()
 
     def MouseButtonDown(self,pos,button):
         if self.playing:

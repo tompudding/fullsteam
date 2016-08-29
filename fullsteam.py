@@ -4,7 +4,6 @@ import ui,globals
 import drawing
 import game_view
 import sounds
-import Tkinter
 from globals.types import Point
 
 def Init():

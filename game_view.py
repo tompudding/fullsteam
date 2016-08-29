@@ -198,6 +198,8 @@ class Regulator(object):
             self.choose_setting(1)
         else:
             self.choose_setting(2)
+        #possibly play sound here
+        globals.sounds.cachunk.play()
 
     def choose_setting(self, n):
         if self.train.parent.tutorial == self.train.parent.tutorial_regulator_on and n == 1:
@@ -205,7 +207,6 @@ class Regulator(object):
         elif self.train.parent.tutorial == self.train.parent.tutorial_regulator_off and n == 0:
             self.train.parent.tutorial()
         self.Update(self.knob_settings[n])
-        #possibly play sound here
         self.train.set_steam(n*0.5)
 
 
@@ -268,6 +269,9 @@ class Reverser(Regulator):
             self.choose_setting(1)
         else:
             self.choose_setting(0)
+        if abs(self.train.steam_flow) < 0.01:
+            globals.sounds.cachunk.play()
+
 
     def click(self, pos):
         diff = pos - (self.knob_pos - Point(1.5,1.2))
@@ -296,6 +300,7 @@ class Brake(object):
     end_angle   = -0.27
     def __init__(self, train):
         self.train = train
+        self.last_screech = 0
         self.size = Point(64,48)
         self.knob_quad = drawing.Quad(globals.screen_texture_buffer,tc = globals.atlas.TextureSpriteCoords(self.knob_name))
         self.knob_coords = ((-30,-29),(-30,19),(34,19),(34,-29))
@@ -320,6 +325,10 @@ class Brake(object):
         if new_angle < 0.3:
             brake_amount = (0.3 - new_angle)/(0.50 - self.end_angle)
             self.train.set_brake(brake_amount)
+            if brake_amount > 0.5 and self.train.speed > 0.1:
+                if (globals.time - self.last_screech) > 1000:
+                    globals.sounds.screech.play()
+                    self.last_screech = globals.time
         vertices = [0,0,0,0]
         for i,coord in enumerate(self.knob_coords):
             p = coord[0] + coord[1]*1j
@@ -432,8 +441,11 @@ class Train(object):
         self.spout_pos = self.pos + Point(53,67)
         self.vent_pos = self.pos + Point(133,49)
 
+
     def Reset(self):
         self.health = 100
+        self.chug_type = None
+        self.last_chug = 0
         self.high_speed = 0
         self.coal_used = 0
         self.coal = 0
@@ -451,6 +463,8 @@ class Train(object):
         self.pressure = 0
         self.reverser.choose_setting(0)
         self.regulator.choose_setting(0)
+        for sound in globals.sounds.chugs:
+            sound.stop()
 
     def set_vertices(self):
         if self.parent.incline == 0:
@@ -561,6 +575,7 @@ class Train(object):
             self.speed = -self.max_speed
         if self.speed > self.high_speed:
             self.high_speed = self.speed
+
         if abs(self.speed) < 0.03:
             if self.braking:
                 self.speed = 0
@@ -568,6 +583,33 @@ class Train(object):
                     self.parent.tutorial()
             if abs(level_left) < 40 and self.speed < 0.01:
                 self.parent.mode.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time,self.high_speed)
+            if self.chug_type is not None:
+                globals.sounds.chugs[self.chug_type].stop()
+            self.chug_type = None
+        elif abs(self.speed) < 1.5:
+            if self.chug_type != 0:
+                if self.chug_type is not None:
+                    globals.sounds.chugs[self.chug_type].stop()
+                self.chug_type = 0
+                globals.sounds.chugs[self.chug_type].play(-1)
+        elif abs(self.speed) < 2:
+            if self.chug_type != 1:
+                if self.chug_type is not None:
+                    globals.sounds.chugs[self.chug_type].stop()
+                self.chug_type = 1
+                globals.sounds.chugs[self.chug_type].play(-1)
+        elif abs(self.speed) < 10:
+            if self.chug_type != 2:
+                if self.chug_type is not None:
+                    globals.sounds.chugs[self.chug_type].stop()
+                self.chug_type = 2
+                globals.sounds.chugs[self.chug_type].play(-1)
+        elif self.chug_type != 3:
+            if self.chug_type is not None:
+                globals.sounds.chugs[self.chug_type].stop()
+            self.chug_type = 3
+            globals.sounds.chugs[self.chug_type].play(-1)
+
 
 
         self.moved += self.speed
@@ -588,6 +630,7 @@ class Train(object):
     def add_coal_button(self, pos):
         self.add_coal(1)
         self.coal_used += 1
+        globals.sounds.whoosh.play()
         if self.parent.tutorial == self.parent.tutorial_coal:
             self.parent.tutorial()
 
@@ -622,6 +665,9 @@ class Train(object):
         self.health -= total*elapsed
         if self.health <= 0:
             self.parent.shake = 0
+            globals.sounds.die.play()
+            if self.chug_type is not None:
+                globals.sounds.chugs[self.chug_type].stop()
             self.parent.mode.level_fail(globals.time - self.parent.start_time)
 
     def set_brake(self, amount):
@@ -835,7 +881,7 @@ class GameView(ui.RootElement):
         self.start_time = globals.time
 
     def StartMusic(self):
-        pass
+        globals.sounds.win_music.play()
         #pygame.mixer.music.play(-1)
         #self.music_playing = True
 
@@ -899,6 +945,8 @@ class GameView(ui.RootElement):
         self.mode = modes.GameOver(self)
 
     def MouseButtonDown(self,pos,button):
+        new_pos = (pos - globals.rotation_offset).Rotate(self.incline)
+        print new_pos
         return self.mode.MouseButtonDown(pos, button)
 
     def MouseButtonUp(self,pos,button):
@@ -914,13 +962,6 @@ class GameView(ui.RootElement):
 
     def KeyUp(self,key):
         #self.mode.level_fail(globals.time - self.start_time)
-        self.mode.level_complete(0,100,21000,15.653)
-        if key == pygame.K_DELETE:
-            if self.music_playing:
-                self.music_playing = False
-                pygame.mixer.music.set_volume(0)
-            else:
-                self.music_playing = True
-                pygame.mixer.music.set_volume(1)
+        #self.mode.level_complete(0,100,21000,15.653)
         self.mode.KeyUp(key)
 

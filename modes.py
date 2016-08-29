@@ -260,7 +260,6 @@ class MainMenu(Mode):
         self.blurb_text.Enable()
         self.blurb_text.SetText('Your train was destroyed!',colour=(0,0,0,1))
         self.skull.Enable()
-        print time_taken
 
         for box in itertools.chain(self.content_boxes,self.content_boxes_right):
             box.Disable()
@@ -333,6 +332,13 @@ class MainMenu(Mode):
             self.parent.Disable()
             self.back_to_game.Enable()
             self.pause_time = globals.time
+            self.level_ok_button.Disable()
+            for label in self.level_buttons:
+                label.Disable()
+            for box in itertools.chain(self.content_boxes,self.content_boxes_right):
+                box.Disable()
+            for chug in globals.sounds.chugs:
+                chug.stop()
 
     def MouseButtonDown(self,pos,button):
         if self.playing:

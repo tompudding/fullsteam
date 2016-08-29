@@ -17,10 +17,10 @@ resource/sprites/flag.png:tiles_atlas_0.png:952:801.0:34:43
 resource/sprites/clock.png:tiles_atlas_0.png:986:812.0:32:32
 resource/sprites/wheel.png:tiles_atlas_0.png:320:736.0:28:28
 resource/sprites/dial.png:tiles_atlas_0.png:320:718.0:32:18
+resource/sprites/mid_bar.png:tiles_atlas_0.png:952:797.0:42:4
+resource/sprites/wheel_bar.png:tiles_atlas_0.png:880:844.0:42:4
 resource/sprites/arrow.png:tiles_atlas_0.png:986:805.0:21:7
+resource/sprites/piston_bar.png:tiles_atlas_0.png:994:797.0:23:4
 resource/sprites/needle.png:tiles_atlas_0.png:1007:807.0:11:5
 resource/sprites/hour_hand.png:tiles_atlas_0.png:1018:837.0:2:7
 resource/sprites/minute_hand.png:tiles_atlas_0.png:1018:823.0:1:14
-resource/sprites/mid_bar.png:tiles_atlas_0.png:1020:843.0:1:1
-resource/sprites/piston_bar.png:tiles_atlas_0.png:1021:843.0:1:1
-resource/sprites/wheel_bar.png:tiles_atlas_0.png:1022:843.0:1:1

@@ -508,13 +508,14 @@ class Train(object):
         tr = bl + Point(42,4)
         diff = a - (centre + bl)
         r,angle = cmath.polar(diff.x + diff.y*1j)
-        print centre+tr,a,r,angle
         for (i,coord) in enumerate((Point(bl.x, bl.y),
                                     Point(bl.x, tr.y),
                                     Point(tr.x, tr.y),
                                     Point(tr.x, bl.y))):
             vertices[i] = centre + coord.Rotate(angle)
-        self.bars[1].SetAllVertices(vertices,0.21)
+        for (i,coord) in enumerate(vertices):
+            vertices[i] = (vertices[i] - globals.rotation_offset).Rotate(self.parent.incline) + globals.rotation_offset
+        self.bars[1].SetAllVertices(vertices,0.7)
 
     def Update(self, elapsed):
         #if self.move_direction:

@@ -489,6 +489,32 @@ class Train(object):
                                     Point(tr.x, bl.y))):
             vertices[i] = globals.rotation_offset + coord.Rotate(self.parent.incline)
         self.bars[0].SetAllVertices(vertices,0.7)
+        x_adjust = a.x - self.wheels[0].pos.x
+
+        #Now the piston bar which oscillates sideways
+        bl = Point(54 + x_adjust,12) - globals.rotation_offset + self.pos
+        tr = bl + Point(23,4)
+        for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                    Point(bl.x, tr.y),
+                                    Point(tr.x, tr.y),
+                                    Point(tr.x, bl.y))):
+            vertices[i] = globals.rotation_offset + coord.Rotate(self.parent.incline)
+        self.bars[2].SetAllVertices(vertices,0.19)
+
+        #Now the middle piston. This needs rotating twice unfortunately
+        #first we rotate it about the position on the end of the piston bar so it reaches the wheel
+        centre = Point(54 + x_adjust,12) + self.pos + Point(23,2)
+        bl = Point(-2,-2)
+        tr = bl + Point(42,4)
+        diff = a - (centre + bl)
+        r,angle = cmath.polar(diff.x + diff.y*1j)
+        print centre+tr,a,r,angle
+        for (i,coord) in enumerate((Point(bl.x, bl.y),
+                                    Point(bl.x, tr.y),
+                                    Point(tr.x, tr.y),
+                                    Point(tr.x, bl.y))):
+            vertices[i] = centre + coord.Rotate(angle)
+        self.bars[1].SetAllVertices(vertices,0.21)
 
     def Update(self, elapsed):
         #if self.move_direction:

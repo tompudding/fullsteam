@@ -4,6 +4,7 @@ import ui,globals
 import drawing
 import game_view
 import sounds
+import pygame.base
 from globals.types import Point
 
 def Init():

@@ -1,2 +1,2 @@
 all:
-	python skeleton.py
+	python fullsteam.py

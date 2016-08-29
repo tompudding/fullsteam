@@ -945,8 +945,9 @@ class GameView(ui.RootElement):
         self.mode = modes.GameOver(self)
 
     def MouseButtonDown(self,pos,button):
-        new_pos = (pos - globals.rotation_offset).Rotate(self.incline)
-        print new_pos
+        new_pos = (pos - globals.rotation_offset).Rotate(-self.incline)
+        if new_pos.x >= 9 and new_pos.x <= 19 and new_pos.y >= 89 and new_pos.y <= 93:
+            globals.sounds.whistle.play()
         return self.mode.MouseButtonDown(pos, button)
 
     def MouseButtonUp(self,pos,button):

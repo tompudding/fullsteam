@@ -310,6 +310,9 @@ class Brake(object):
         self.knob_pos = bl + Point(30,29)
         self.pos = bl
         self.level = 0
+        self.Reset()
+
+    def Reset(self):
         self.Update(self.start_angle)
 
     def snap(self):
@@ -463,6 +466,7 @@ class Train(object):
         self.pressure = 0
         self.reverser.choose_setting(0)
         self.regulator.choose_setting(0)
+        self.brake.Reset()
         for sound in globals.sounds.chugs:
             sound.stop()
 
@@ -582,6 +586,7 @@ class Train(object):
                 if self.parent.tutorial == self.parent.tutorial_brake:
                     self.parent.tutorial()
             if abs(level_left) < 40 and self.speed < 0.01:
+                globals.sounds.win_music.play()
                 self.parent.mode.level_complete(self.coal_used, self.health, globals.time - self.parent.start_time,self.high_speed)
             if self.chug_type is not None:
                 globals.sounds.chugs[self.chug_type].stop()

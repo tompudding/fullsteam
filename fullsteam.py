@@ -107,6 +107,8 @@ def main():
                             break
 
 if __name__ == '__main__':
+    if hasattr(sys, "_MEIPASS"):
+        os.chdir(sys._MEIPASS)
     import logging
     try:
         logging.basicConfig(level=logging.DEBUG, filename='errorlog.log')

@@ -1,0 +1,1 @@
+Pygame with opengl UI framework skeleton for Ludum Dare.
